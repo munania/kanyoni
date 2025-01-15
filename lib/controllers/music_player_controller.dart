@@ -195,6 +195,17 @@ class MusicPlayerController extends GetxController {
     }
   }
 
+  void filterGenres(String query) {
+    if (query.isEmpty) {
+      genres.refresh(); // Reset to original genres
+    } else {
+      final lowerQuery = query.toLowerCase();
+      genres.value = genres
+          .where((genre) => genre.genre.toLowerCase().contains(lowerQuery))
+          .toList();
+    }
+  }
+
   Future<void> playNext() async {
     if (currentSongIndex.value < currentPlaylist.length - 1) {
       await playSong(currentSongIndex.value + 1);
