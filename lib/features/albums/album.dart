@@ -18,6 +18,7 @@ class AlbumsView extends StatelessWidget {
 
     return Obx(() {
       return GridView.builder(
+        physics: BouncingScrollPhysics(),
         padding: const EdgeInsets.all(16),
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 2,

@@ -33,6 +33,7 @@ class TracksList extends StatelessWidget {
   Widget build(BuildContext context) {
     return Obx(() {
       return ListView.builder(
+        physics: BouncingScrollPhysics(),
         itemCount: controller.songs.length,
         itemBuilder: (context, index) {
           final song = controller.songs[index];

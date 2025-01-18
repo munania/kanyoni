@@ -50,7 +50,7 @@ class _HomePageState extends State<HomePage>
       ),
       TabData(
         title: 'Playlists',
-        view: const Playlists(),
+        view: const PlaylistView(),
       ),
       TabData(
         title: 'Albums',
@@ -66,7 +66,7 @@ class _HomePageState extends State<HomePage>
       ),
       TabData(
         title: 'Folders',
-        view: const Playlists(),
+        view: const PlaylistView(),
       ),
     ];
 

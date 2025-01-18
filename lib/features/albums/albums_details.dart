@@ -124,7 +124,6 @@ class AlbumDetailsView extends StatelessWidget {
                   itemCount: albumSongs.length,
                   itemBuilder: (context, index) {
                     final song = albumSongs[index];
-                    final songIndex = controller.songs.indexOf(song);
 
                     return ListTile(
                       leading: CircleAvatar(
