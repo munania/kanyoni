@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:iconsax/iconsax.dart';
+import 'package:kanyoni/controllers/player_controller.dart';
+import 'package:kanyoni/features/playlists/controller/playlists_controller.dart';
 import 'package:kanyoni/features/playlists/playlist_song_card.dart';
 import 'package:on_audio_query_forked/on_audio_query.dart';
 import 'package:sliding_up_panel/sliding_up_panel.dart';
 
-import '../../controllers/music_player_controller.dart';
 import '../../now_playing.dart';
 import '../../utils/theme/theme.dart';
 
@@ -19,10 +20,11 @@ class PlaylistDetailsView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final controller = Get.find<MusicPlayerController>();
+    final playlistController = Get.find<PlaylistController>();
+    final playerController = Get.find<PlayerController>();
     final panelController = PanelController();
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    controller.songCount.value = playlist.numOfSongs;
+    playlistController.songCount.value = playlist.numOfSongs;
 
     return Scaffold(
       body: SlidingUpPanel(
@@ -33,52 +35,52 @@ class PlaylistDetailsView extends StatelessWidget {
           top: Radius.circular(AppTheme.cornerRadius),
         ),
         panel: NowPlayingPanel(
-          controller: controller,
+          playerController: playerController,
           isDarkMode: isDarkMode,
         ),
         collapsed: CollapsedPanel(
-          controller: controller,
+          playerController: playerController,
           isDarkMode: isDarkMode,
         ),
         body: CustomScrollView(
           slivers: [
             SliverAppBar(
-              actions: [
-                IconButton(
-                  icon: const Icon(
-                    Iconsax.add_square,
-                    size: 30,
+                actions: [
+                  IconButton(
+                    icon: const Icon(
+                      Iconsax.add_square,
+                      size: 30,
+                    ),
+                    onPressed: () => _showAddToPlaylistDialog(
+                        context, playlistController, playerController),
                   ),
-                  onPressed: () =>
-                      _showAddToPlaylistDialog(context, controller),
-                ),
-              ],
-              expandedHeight: 300,
-              pinned: true,
-              flexibleSpace: FlexibleSpaceBar(
-                centerTitle: true,
-                title: Text(
-                  playlist.playlist,
-                  style: AppTheme.headlineLarge.copyWith(
-                    color: isDarkMode ? Colors.white : Colors.black,
-                  ),
-                ),
-                background: QueryArtworkWidget(
-                  id: playlist.id,
-                  type: ArtworkType.ARTIST,
-                  nullArtworkWidget: Container(
-                    color: isDarkMode ? Colors.grey[800] : Colors.grey[300],
-                    child: Icon(
-                      Iconsax.user,
-                      size: 100,
-                      color: isDarkMode
-                          ? AppTheme.playerControlsDark
-                          : AppTheme.playerControlsLight,
+                ],
+                expandedHeight: 300,
+                pinned: true,
+                flexibleSpace: FlexibleSpaceBar(
+                  centerTitle: true,
+                  title: Text(
+                    playlist.playlist.replaceAll(
+                        ' [kanyoni]', ''), // Remove the identifier here
+                    style: AppTheme.headlineLarge.copyWith(
+                      color: isDarkMode ? Colors.white : Colors.black,
                     ),
                   ),
-                ),
-              ),
-            ),
+                  background: QueryArtworkWidget(
+                    id: playlist.id,
+                    type: ArtworkType.ARTIST,
+                    nullArtworkWidget: Container(
+                      color: isDarkMode ? Colors.grey[800] : Colors.grey[300],
+                      child: Icon(
+                        Iconsax.user,
+                        size: 100,
+                        color: isDarkMode
+                            ? AppTheme.playerControlsDark
+                            : AppTheme.playerControlsLight,
+                      ),
+                    ),
+                  ),
+                )),
             SliverToBoxAdapter(
               child: Obx(
                 () => Padding(
@@ -93,14 +95,14 @@ class PlaylistDetailsView extends StatelessWidget {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                '${controller.songCount.value} songs',
+                                '${playlistController.songCount.value} songs',
                                 style: AppTheme.headlineMedium,
                               ),
                             ],
                           ),
                           ElevatedButton.icon(
                             onPressed: () =>
-                                controller.playPlaylist(playlist.id),
+                                playlistController.playPlaylist(playlist.id),
                             icon: Icon(Icons.play_arrow,
                                 color: isDarkMode
                                     ? AppTheme.nowPlayingDark
@@ -127,12 +129,17 @@ class PlaylistDetailsView extends StatelessWidget {
             ),
             SliverToBoxAdapter(
               child: Obx(() {
-                if (controller.songs.isEmpty) {
+                if (playlistController.playlistSongs.isEmpty) {
                   return const Center(child: CircularProgressIndicator());
                 }
-                final playlistSongs = controller.getPlaylistSongs(playlist.id);
+                final playlistSongs =
+                    playlistController.getPlaylistSongs(playlist.id);
+                print("ID here : ${playlist.id}");
+                print(
+                    "songs here : ${playlistController.getPlaylistSongs(playlist.id)}");
+                print("NEW here : ${playlistController.playlistSongs.length}");
 
-                if (playlistSongs.isEmpty) {
+                if (playlistController.playlistSongs.isEmpty) {
                   return Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -169,9 +176,10 @@ class PlaylistDetailsView extends StatelessWidget {
                   itemBuilder: (context, index) {
                     final playlistSong = playlistSongs[index];
                     // Find the matching song from the main songs list
-                    final mainSong = controller.songs.firstWhereOrNull((s) =>
-                        s.title == playlistSong.title &&
-                        s.artist == playlistSong.artist);
+                    final mainSong = playlistController.songs.firstWhereOrNull(
+                        (s) =>
+                            s.title == playlistSong.title &&
+                            s.artist == playlistSong.artist);
 
                     // Use the main song if found, otherwise use playlist song
                     final songToUse = mainSong ?? playlistSong;
@@ -181,13 +189,13 @@ class PlaylistDetailsView extends StatelessWidget {
                       song: songToUse,
                       isDarkMode: isDarkMode,
                       onPlay: () {
-                        controller.currentPlaylist.value = playlistSongs;
-                        controller.playSong(songToUse);
+                        playerController.currentPlaylist.value = playlistSongs;
+                        playerController.playSong(songToUse);
                       },
                       onRemove: () {
-                        controller.removeFromPlaylist(
+                        playlistController.removeFromPlaylist(
                             playlist.id, playlistSong.id);
-                        controller.refreshPlaylists();
+                        playlistController.refreshPlaylists();
                       },
                     );
                   },
@@ -202,7 +210,8 @@ class PlaylistDetailsView extends StatelessWidget {
 
   void _showAddToPlaylistDialog(
     BuildContext context,
-    MusicPlayerController controller,
+    PlaylistController playlistController,
+    PlayerController playerController,
   ) {
     showDialog(
       context: context,
@@ -212,7 +221,7 @@ class PlaylistDetailsView extends StatelessWidget {
           width: double.maxFinite,
           height: 400,
           child: Obx(() {
-            final songs = controller.songs;
+            final songs = playerController.songs;
             return ListView.builder(
               shrinkWrap: true,
               itemCount: songs.length,
@@ -220,7 +229,7 @@ class PlaylistDetailsView extends StatelessWidget {
                 final song = songs[index];
                 return Obx(() {
                   final isInPlaylist =
-                      controller.isInPlaylist(playlist.id, song.title);
+                      playlistController.isInPlaylist(playlist.id, song.title);
 
                   return CheckboxListTile(
                     title: Text(
@@ -236,7 +245,7 @@ class PlaylistDetailsView extends StatelessWidget {
                     value: isInPlaylist,
                     onChanged: (value) async {
                       if (value ?? false) {
-                        final success = await controller.addToPlaylist(
+                        final success = await playlistController.addToPlaylist(
                             playlist.id, song.id);
                         if (!success && context.mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
@@ -247,7 +256,7 @@ class PlaylistDetailsView extends StatelessWidget {
                           );
                         }
                       } else {
-                        await controller.removeFromPlaylist(
+                        await playlistController.removeFromPlaylist(
                             playlist.id, song.id);
                       }
                     },

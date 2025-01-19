@@ -5,7 +5,11 @@ import 'package:get/get.dart';
 import 'package:permission_handler/permission_handler.dart'; // Add this import
 import 'package:sliding_up_panel/sliding_up_panel.dart';
 
-import 'controllers/music_player_controller.dart';
+import 'controllers/player_controller.dart';
+import 'features/albums/controller/album_controller.dart';
+import 'features/artists/controller/artists_controller.dart';
+import 'features/genres/controller/genres_controller.dart';
+import 'features/playlists/controller/playlists_controller.dart';
 import 'homepage.dart';
 import 'now_playing.dart'; // Your separated now playing components
 import 'utils/theme/theme.dart';
@@ -13,6 +17,11 @@ import 'utils/theme/theme.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await requestPermissions();
+  Get.put(PlaylistController());
+  Get.put(AlbumController());
+  Get.put(ArtistController());
+  Get.put(GenreController());
+  Get.put(PlayerController());
   runApp(const MyApp());
 }
 
@@ -60,7 +69,7 @@ class AppLayout extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final controller = Get.put(MusicPlayerController());
+    final playerController = Get.find<PlayerController>();
     final panelController = PanelController();
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
@@ -73,11 +82,11 @@ class AppLayout extends StatelessWidget {
           top: Radius.circular(AppTheme.cornerRadius),
         ),
         panel: NowPlayingPanel(
-          controller: controller,
+          playerController: playerController,
           isDarkMode: isDarkMode,
         ),
         collapsed: CollapsedPanel(
-          controller: controller,
+          playerController: playerController,
           isDarkMode: isDarkMode,
         ),
         body: child,

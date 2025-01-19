@@ -1,34 +1,34 @@
-// views/now_playing_view.dart
 import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:iconsax/iconsax.dart';
+import 'package:kanyoni/controllers/player_controller.dart';
 import 'package:marquee/marquee.dart';
 import 'package:on_audio_query_forked/on_audio_query.dart';
 
-import '../../controllers/music_player_controller.dart';
 import '../../utils/theme/theme.dart';
 
 class CollapsedPanel extends StatelessWidget {
-  final MusicPlayerController controller;
+  final PlayerController playerController;
   final bool isDarkMode;
 
   const CollapsedPanel({
     super.key,
-    required this.controller,
+    required this.playerController,
     required this.isDarkMode,
   });
 
   @override
   Widget build(BuildContext context) {
     return Obx(() {
-      if (controller.songs.isEmpty ||
-          controller.currentSongIndex.value >= controller.songs.length) {
+      if (playerController.songs.isEmpty ||
+          playerController.currentSongIndex.value >=
+              playerController.songs.length) {
         return const SizedBox.shrink();
       }
 
-      final currentSong =
-          controller.currentPlaylist[controller.currentSongIndex.value];
+      final currentSong = playerController
+          .currentPlaylist[playerController.currentSongIndex.value];
       final backgroundColor =
           isDarkMode ? AppTheme.nowPlayingDark : AppTheme.nowPlayingLight;
 
@@ -77,7 +77,7 @@ class CollapsedPanel extends StatelessWidget {
               ),
             ),
             MediaControls(
-              controller: controller,
+              playerController: playerController,
               isDarkMode: isDarkMode,
               isExpanded: false,
             ),
@@ -89,25 +89,26 @@ class CollapsedPanel extends StatelessWidget {
 }
 
 class NowPlayingPanel extends StatelessWidget {
-  final MusicPlayerController controller;
+  final PlayerController playerController;
   final bool isDarkMode;
 
   const NowPlayingPanel({
     super.key,
-    required this.controller,
+    required this.playerController,
     required this.isDarkMode,
   });
 
   @override
   Widget build(BuildContext context) {
     return Obx(() {
-      if (controller.songs.isEmpty ||
-          controller.currentSongIndex.value >= controller.songs.length) {
+      if (playerController.songs.isEmpty ||
+          playerController.currentSongIndex.value >=
+              playerController.songs.length) {
         return const SizedBox.shrink();
       }
 
-      final currentSong =
-          controller.currentPlaylist[controller.currentSongIndex.value];
+      final currentSong = playerController
+          .currentPlaylist[playerController.currentSongIndex.value];
       final backgroundColor =
           isDarkMode ? AppTheme.nowPlayingDark : AppTheme.nowPlayingLight;
 
@@ -129,13 +130,16 @@ class NowPlayingPanel extends StatelessWidget {
                   ArtworkDisplay(song: currentSong, isDarkMode: isDarkMode),
                   SongInfo(song: currentSong),
                   ProgressControls(
-                      controller: controller, isDarkMode: isDarkMode),
+                      playerController: playerController,
+                      isDarkMode: isDarkMode),
                   MediaControls(
-                    controller: controller,
+                    playerController: playerController,
                     isDarkMode: isDarkMode,
                     isExpanded: true,
                   ),
-                  ExtraControls(controller: controller, isDarkMode: isDarkMode),
+                  ExtraControls(
+                      playerController: playerController,
+                      isDarkMode: isDarkMode),
                 ],
               ),
             ),
@@ -241,12 +245,12 @@ class SongInfo extends StatelessWidget {
 }
 
 class ProgressControls extends StatelessWidget {
-  final MusicPlayerController controller;
+  final PlayerController playerController;
   final bool isDarkMode;
 
   const ProgressControls({
     super.key,
-    required this.controller,
+    required this.playerController,
     required this.isDarkMode,
   });
 
@@ -255,14 +259,14 @@ class ProgressControls extends StatelessWidget {
     return Column(
       children: [
         StreamBuilder<PositionData>(
-          stream: controller.positionDataStream,
+          stream: playerController.positionDataStream,
           builder: (context, snapshot) {
             final positionData = snapshot.data;
             return ProgressBar(
               progress: positionData?.position ?? Duration.zero,
               buffered: Duration.zero,
               total: positionData?.duration ?? Duration.zero,
-              onSeek: controller.audioPlayer.seek,
+              onSeek: playerController.audioPlayer.seek,
               baseBarColor: isDarkMode ? Colors.grey[800] : Colors.grey[300],
               progressBarColor: isDarkMode
                   ? AppTheme.progressBarDark
@@ -281,13 +285,13 @@ class ProgressControls extends StatelessWidget {
 }
 
 class MediaControls extends StatelessWidget {
-  final MusicPlayerController controller;
+  final PlayerController playerController;
   final bool isDarkMode;
   final bool isExpanded;
 
   const MediaControls({
     super.key,
-    required this.controller,
+    required this.playerController,
     required this.isDarkMode,
     required this.isExpanded,
   });
@@ -303,19 +307,21 @@ class MediaControls extends StatelessWidget {
         children: [
           IconButton(
             icon: const Icon(Iconsax.previous),
-            onPressed: controller.playPrevious,
+            onPressed: playerController.playPrevious,
             color: iconColor,
           ),
           Obx(() => IconButton(
                 icon: Icon(
-                  controller.isPlaying.value ? Iconsax.pause : Iconsax.play,
+                  playerController.isPlaying.value
+                      ? Iconsax.pause
+                      : Iconsax.play,
                 ),
-                onPressed: controller.togglePlayPause,
+                onPressed: playerController.togglePlayPause,
                 color: iconColor,
               )),
           IconButton(
             icon: const Icon(Iconsax.next),
-            onPressed: controller.playNext,
+            onPressed: playerController.playNext,
             color: iconColor,
           ),
         ],
@@ -327,19 +333,19 @@ class MediaControls extends StatelessWidget {
       children: [
         IconButton(
           icon: Obx(() => Icon(
-                controller.isShuffle.value
+                playerController.isShuffle.value
                     ? Icons.shuffle_on_outlined
                     : Icons.shuffle,
-                color: controller.isShuffle.value
+                color: playerController.isShuffle.value
                     ? AppTheme.playerControlsDark
                     : iconColor,
               )),
-          onPressed: controller.toggleShuffle,
+          onPressed: playerController.toggleShuffle,
           iconSize: 30,
         ),
         IconButton(
           icon: const Icon(Iconsax.previous),
-          onPressed: controller.playPrevious,
+          onPressed: playerController.playPrevious,
           iconSize: 35,
           color: iconColor,
         ),
@@ -351,27 +357,29 @@ class MediaControls extends StatelessWidget {
           padding: const EdgeInsets.all(8),
           child: Obx(() => IconButton(
                 icon: Icon(
-                  controller.isPlaying.value ? Iconsax.pause : Iconsax.play,
+                  playerController.isPlaying.value
+                      ? Iconsax.pause
+                      : Iconsax.play,
                   color: isDarkMode ? Colors.black : Colors.white,
                 ),
-                onPressed: controller.togglePlayPause,
+                onPressed: playerController.togglePlayPause,
                 iconSize: 40,
               )),
         ),
         IconButton(
           icon: const Icon(Iconsax.next),
-          onPressed: controller.playNext,
+          onPressed: playerController.playNext,
           iconSize: 35,
           color: iconColor,
         ),
         IconButton(
           icon: Obx(() => Icon(
-                _getRepeatIcon(controller.repeatMode.value),
-                color: controller.repeatMode.value != RepeatMode.off
+                _getRepeatIcon(playerController.repeatMode.value),
+                color: playerController.repeatMode.value != RepeatMode.off
                     ? AppTheme.playerControlsDark
                     : iconColor,
               )),
-          onPressed: controller.toggleRepeatMode,
+          onPressed: playerController.toggleRepeatMode,
           iconSize: 30,
         ),
       ],
@@ -391,12 +399,12 @@ class MediaControls extends StatelessWidget {
 }
 
 class ExtraControls extends StatelessWidget {
-  final MusicPlayerController controller;
+  final PlayerController playerController;
   final bool isDarkMode;
 
   const ExtraControls({
     super.key,
-    required this.controller,
+    required this.playerController,
     required this.isDarkMode,
   });
 
@@ -410,21 +418,21 @@ class ExtraControls extends StatelessWidget {
       children: [
         IconButton(
           icon: Obx(() {
-            final currentSong =
-                controller.currentPlaylist[controller.currentSongIndex.value];
+            final currentSong = playerController
+                .currentPlaylist[playerController.currentSongIndex.value];
             return Icon(
-              controller.favoriteSongs.contains(currentSong.id)
+              playerController.favoriteSongs.contains(currentSong.id)
                   ? Icons.favorite
                   : Icons.favorite_border,
-              color: controller.favoriteSongs.contains(currentSong.id)
+              color: playerController.favoriteSongs.contains(currentSong.id)
                   ? AppTheme.playerControlsDark
                   : iconColor,
             );
           }),
           onPressed: () {
-            final currentSong =
-                controller.currentPlaylist[controller.currentSongIndex.value];
-            controller.toggleFavorite(currentSong.id);
+            final currentSong = playerController
+                .currentPlaylist[playerController.currentSongIndex.value];
+            playerController.toggleFavorite(currentSong.id);
           },
           iconSize: 30,
         ),

@@ -2,9 +2,9 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:iconsax/iconsax.dart';
+import 'package:kanyoni/controllers/player_controller.dart';
 import 'package:on_audio_query_forked/on_audio_query.dart';
 
-import '../../controllers/music_player_controller.dart';
 import '../../utils/theme/theme.dart';
 
 class TracksView extends StatelessWidget {
@@ -12,21 +12,22 @@ class TracksView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final controller = Get.find<MusicPlayerController>();
+    final playerController = Get.find<PlayerController>();
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
-    return TracksList(controller: controller, isDarkMode: isDarkMode);
+    return TracksList(
+        isDarkMode: isDarkMode, playerController: playerController);
   }
 }
 
 class TracksList extends StatelessWidget {
-  final MusicPlayerController controller;
+  final PlayerController playerController;
   final bool isDarkMode;
 
   const TracksList({
     super.key,
-    required this.controller,
     required this.isDarkMode,
+    required this.playerController,
   });
 
   @override
@@ -34,9 +35,9 @@ class TracksList extends StatelessWidget {
     return Obx(() {
       return ListView.builder(
         physics: BouncingScrollPhysics(),
-        itemCount: controller.songs.length,
+        itemCount: playerController.songs.length,
         itemBuilder: (context, index) {
-          final song = controller.songs[index];
+          final song = playerController.songs[index];
           return ListTile(
             leading: QueryArtworkWidget(
               id: song.id,
@@ -61,18 +62,7 @@ class TracksList extends StatelessWidget {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
-            // trailing: IconButton(
-            //   icon: Icon(
-            //     controller.favoriteSongs.contains(song.id)
-            //         ? Icons.favorite
-            //         : Icons.favorite_border,
-            //     color: controller.favoriteSongs.contains(song.id)
-            //         ? AppTheme.playerControlsDark
-            //         : null,
-            //   ),
-            //   onPressed: () => controller.toggleFavorite(song.id),
-            // ),
-            onTap: () => controller.playSong(index),
+            onTap: () => playerController.playSong(index),
           );
         },
       );

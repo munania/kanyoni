@@ -2,10 +2,11 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:iconsax/iconsax.dart';
+import 'package:kanyoni/controllers/player_controller.dart';
+import 'package:kanyoni/features/albums/controller/album_controller.dart';
 import 'package:on_audio_query_forked/on_audio_query.dart';
 import 'package:sliding_up_panel/sliding_up_panel.dart';
 
-import '../../controllers/music_player_controller.dart';
 import '../../now_playing.dart';
 import '../../utils/theme/theme.dart';
 
@@ -19,7 +20,8 @@ class AlbumDetailsView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final controller = Get.find<MusicPlayerController>();
+    final albumController = Get.find<AlbumController>();
+    final playerController = Get.find<PlayerController>();
     final panelController = PanelController();
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
@@ -32,11 +34,11 @@ class AlbumDetailsView extends StatelessWidget {
           top: Radius.circular(AppTheme.cornerRadius),
         ),
         panel: NowPlayingPanel(
-          controller: controller,
+          playerController: playerController,
           isDarkMode: isDarkMode,
         ),
         collapsed: CollapsedPanel(
-          controller: controller,
+          playerController: playerController,
           isDarkMode: isDarkMode,
         ),
         body: CustomScrollView(
@@ -88,7 +90,7 @@ class AlbumDetailsView extends StatelessWidget {
                       ],
                     ),
                     ElevatedButton.icon(
-                      onPressed: () => controller.playAlbumSongs(album.id),
+                      onPressed: () => albumController.playAlbumSongs(album.id),
                       icon: Icon(Icons.play_arrow,
                           color: isDarkMode
                               ? AppTheme.nowPlayingDark
@@ -112,9 +114,8 @@ class AlbumDetailsView extends StatelessWidget {
             ),
             SliverToBoxAdapter(
               child: Obx(() {
-                final albumSongs = controller.songs
-                    .where((song) => song.albumId == album.id)
-                    .toList();
+                final albumSongs =
+                    albumController.getAlbumSongs(album.id).toList();
 
                 return ListView.builder(
                   shrinkWrap: true,
@@ -148,19 +149,21 @@ class AlbumDetailsView extends StatelessWidget {
                       ),
                       trailing: IconButton(
                         icon: Icon(
-                          controller.favoriteSongs.contains(song.id)
+                          playerController.favoriteSongs.contains(song.id)
                               ? Icons.favorite
                               : Icons.favorite_border,
-                          color: controller.favoriteSongs.contains(song.id)
-                              ? AppTheme.playerControlsDark
-                              : null,
+                          color:
+                              playerController.favoriteSongs.contains(song.id)
+                                  ? AppTheme.playerControlsDark
+                                  : null,
                         ),
-                        onPressed: () => controller.toggleFavorite(song.id),
+                        onPressed: () =>
+                            playerController.toggleFavorite(song.id),
                       ),
                       onTap: () {
                         // Update current playlist to album songs and play selected song
-                        controller.currentPlaylist.value = albumSongs;
-                        controller.playSong(index);
+                        playerController.currentPlaylist.value = albumSongs;
+                        playerController.playSong(index);
                       },
                     );
                   },

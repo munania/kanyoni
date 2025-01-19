@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:iconsax/iconsax.dart';
+import 'package:kanyoni/controllers/player_controller.dart';
+import 'package:kanyoni/features/genres/controller/genres_controller.dart';
 import 'package:on_audio_query_forked/on_audio_query.dart';
 import 'package:sliding_up_panel/sliding_up_panel.dart';
 
-import '../../controllers/music_player_controller.dart';
 import '../../now_playing.dart';
 import '../../utils/theme/theme.dart';
 
@@ -18,7 +19,8 @@ class GenreDetailsView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final controller = Get.find<MusicPlayerController>();
+    final genreController = Get.find<GenreController>();
+    final playerController = Get.find<PlayerController>();
     final panelController = PanelController();
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
@@ -31,11 +33,11 @@ class GenreDetailsView extends StatelessWidget {
           top: Radius.circular(AppTheme.cornerRadius),
         ),
         panel: NowPlayingPanel(
-          controller: controller,
+          playerController: playerController,
           isDarkMode: isDarkMode,
         ),
         collapsed: CollapsedPanel(
-          controller: controller,
+          playerController: playerController,
           isDarkMode: isDarkMode,
         ),
         body: CustomScrollView(
@@ -90,7 +92,8 @@ class GenreDetailsView extends StatelessWidget {
                           ],
                         ),
                         ElevatedButton.icon(
-                          onPressed: () => controller.playGenreSongs(genre.id),
+                          onPressed: () =>
+                              genreController.playGenreSongs(genre.id),
                           icon: Icon(Icons.play_arrow,
                               color: isDarkMode
                                   ? AppTheme.nowPlayingDark
@@ -116,7 +119,7 @@ class GenreDetailsView extends StatelessWidget {
             ),
             SliverToBoxAdapter(
               child: Obx(() {
-                final genreSongs = controller.getGenreSongs(genre.id);
+                final genreSongs = genreController.getGenreSongs(genre.id);
 
                 return ListView.builder(
                   shrinkWrap: true,
@@ -153,19 +156,21 @@ class GenreDetailsView extends StatelessWidget {
                       ),
                       trailing: IconButton(
                         icon: Icon(
-                          controller.favoriteSongs.contains(song.id)
+                          playerController.favoriteSongs.contains(song.id)
                               ? Icons.favorite
                               : Icons.favorite_border,
-                          color: controller.favoriteSongs.contains(song.id)
-                              ? AppTheme.playerControlsDark
-                              : null,
+                          color:
+                              playerController.favoriteSongs.contains(song.id)
+                                  ? AppTheme.playerControlsDark
+                                  : null,
                         ),
-                        onPressed: () => controller.toggleFavorite(song.id),
+                        onPressed: () =>
+                            playerController.toggleFavorite(song.id),
                       ),
                       onTap: () {
                         // Update current playlist to genre songs and play selected song
-                        controller.currentPlaylist.value = genreSongs;
-                        controller.playSong(index);
+                        playerController.currentPlaylist.value = genreSongs;
+                        playerController.playSong(index);
                       },
                     );
                   },
