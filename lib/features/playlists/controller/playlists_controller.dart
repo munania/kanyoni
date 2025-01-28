@@ -94,38 +94,37 @@ class PlaylistController extends BaseController {
     }
   }
 
-  Future<void> renamePlaylist(int playlistId, String newName) async {
+  Future<void> renameMyPlaylist(int playlistId, String newName) async {
     try {
       if (kDebugMode) {
         print('Original name: $newName');
         print('Playlist ID: $playlistId');
       }
 
-      final appPlaylistName = "$newName $appPlaylistIdentifier";
+      // Make sure we're not duplicating the identifier
+      final cleanName = newName.replaceAll(appPlaylistIdentifier, '').trim();
+      final appPlaylistName = "$cleanName $appPlaylistIdentifier";
+
       if (kDebugMode) {
         print('New name: $appPlaylistName');
       }
 
       final result =
           await audioQuery.renamePlaylist(playlistId, appPlaylistName);
-      print(result);
 
       if (result) {
         // Instead of reloading everything, just update the specific playlist
         final index =
             playlists.indexWhere((playlist) => playlist.id == playlistId);
         if (index != -1) {
-          // Create a new playlist model with updated name
+          // Create a new playlist model with updated name (without the identifier)
           final updatedPlaylist = PlaylistModel(
-              {...playlists[index].getMap, 'playlist': appPlaylistName});
+              {...playlists[index].getMap, 'playlist': cleanName});
 
           // Update the list
           playlists[index] = updatedPlaylist;
+          playlists.refresh();
         }
-
-        // Force refresh the observables
-        // playlists.refresh();
-        // playlistSongs.refresh();
 
         Get.snackbar('Success', 'Playlist renamed successfully',
             snackPosition: SnackPosition.BOTTOM);
@@ -171,7 +170,9 @@ class PlaylistController extends BaseController {
         // Find the song in our songs list
         final song = songs.firstWhere((s) => s.id == songId);
 
-        print("SONG $song");
+        if (kDebugMode) {
+          print("SONG $song");
+        }
 
         // Update local cache
         final currentSongs =

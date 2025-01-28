@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:kanyoni/features/artists/artists.dart';
+import 'package:kanyoni/features/folders/folders.dart';
 import 'package:kanyoni/features/playlists/playlists.dart';
 import 'package:kanyoni/utils/theme/theme.dart';
 
@@ -66,7 +67,7 @@ class _HomePageState extends State<HomePage>
       ),
       TabData(
         title: 'Folders',
-        view: const PlaylistView(),
+        view: const FoldersView(),
       ),
     ];
 

@@ -1,12 +1,28 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:on_audio_query_forked/on_audio_query.dart';
 import 'package:rxdart/rxdart.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'base_controller.dart';
 
 class PlayerController extends BaseController {
+  // SharedPreferences keys
+  static const String kLastSongIdKey = 'last_song_id';
+  static const String kLastPositionKey = 'last_position_seconds';
+  static const String kLastListPositionKey = 'last_list_position';
+  static const String kLastVolumeKey = 'last_volume';
+  static const String kShuffleModeKey = 'shuffle_mode';
+  static const String kRepeatModeKey = 'repeat_mode';
+  static const String kLastSaveTimeKey = 'last_save_time';
+  static const Duration kMaxRestoreThreshold = Duration(hours: 24);
+  static const String kLastAppCloseTimeKey = 'last_app_close_time';
+  static const Duration kScrollPositionRestoreThreshold = Duration(minutes: 30);
+
+  late SharedPreferences _prefs;
   var currentSongIndex = 0.obs;
   var isPlaying = false.obs;
   var isShuffle = false.obs;
@@ -14,18 +30,153 @@ class PlayerController extends BaseController {
   var favoriteSongs = <int>[].obs;
   var currentPlaylist = <SongModel>[].obs;
   var volume = 1.0.obs;
+  var listScrollOffset = 0.0.obs; // For tracking list scroll position
+  int? get lastAppCloseTime => _prefs.getInt(kLastAppCloseTimeKey);
   List<SongModel>? originalPlaylist;
+  DateTime? _lastSaveTime;
+  Timer? _scrollDebounceTimer;
 
   @override
   void onInit() {
     super.onInit();
+    _initializePreferences();
     _initializeAudioPlayer();
     loadSongs();
+  }
+
+  Future<void> _initializePreferences() async {
+    try {
+      _prefs = await SharedPreferences.getInstance();
+      _restoreState();
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error initializing preferences: $e');
+      }
+    }
+  }
+
+  Future<void> _restoreState() async {
+    try {
+      // Restore last save time
+      final lastSaveTimeMillis = _prefs.getInt(kLastSaveTimeKey);
+      if (lastSaveTimeMillis != null) {
+        _lastSaveTime = DateTime.fromMillisecondsSinceEpoch(lastSaveTimeMillis);
+
+        // Check if we're within the restore threshold
+        if (DateTime.now().difference(_lastSaveTime!) > kMaxRestoreThreshold) {
+          if (kDebugMode) {
+            print('Last save time exceeded threshold, skipping state restore');
+          }
+          return;
+        }
+      }
+
+      // Restore playback settings
+      volume.value = _prefs.getDouble(kLastVolumeKey) ?? 1.0;
+      audioPlayer.setVolume(volume.value);
+
+      isShuffle.value = _prefs.getBool(kShuffleModeKey) ?? false;
+      audioPlayer.setShuffleModeEnabled(isShuffle.value);
+
+      final savedRepeatMode = _prefs.getInt(kRepeatModeKey) ?? 0;
+      repeatMode.value = RepeatMode.values[savedRepeatMode];
+      audioPlayer.setLoopMode(_getLoopMode(repeatMode.value));
+
+      // Restore scroll position
+      listScrollOffset.value = _prefs.getDouble(kLastListPositionKey) ?? 0.0;
+
+      // Restore last song and position after songs are loaded
+      await loadSongs();
+      await _restoreLastSong();
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error restoring state: $e');
+      }
+    }
+  }
+
+  Future<void> _restoreLastSong() async {
+    try {
+      final lastSongId = _prefs.getInt(kLastSongIdKey);
+      final lastPosition = _prefs.getInt(kLastPositionKey);
+
+      if (lastSongId != null && songs.isNotEmpty) {
+        final songIndex = songs.indexWhere((song) => song.id == lastSongId);
+        if (songIndex != -1) {
+          await playSong(songIndex);
+          if (lastPosition != null) {
+            await audioPlayer.seek(Duration(seconds: lastPosition));
+            // Don't auto-play, just seek to position
+            await audioPlayer.pause();
+          }
+        }
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error restoring last song: $e');
+      }
+    }
+  }
+
+  Future<void> _saveState() async {
+    try {
+      if (currentPlaylist.isEmpty ||
+          currentSongIndex.value >= currentPlaylist.length) {
+        return;
+      }
+
+      final currentSong = currentPlaylist[currentSongIndex.value];
+      final position = audioPlayer.position.inSeconds;
+
+      await _prefs.setInt(kLastSongIdKey, currentSong.id);
+      await _prefs.setInt(kLastPositionKey, position);
+      await _prefs.setDouble(kLastListPositionKey, listScrollOffset.value);
+      await _prefs.setDouble(kLastVolumeKey, volume.value);
+      await _prefs.setBool(kShuffleModeKey, isShuffle.value);
+      await _prefs.setInt(kRepeatModeKey, repeatMode.value.index);
+      await _prefs.setInt(
+          kLastSaveTimeKey, DateTime.now().millisecondsSinceEpoch);
+      await _prefs.setInt(
+          kLastAppCloseTimeKey, DateTime.now().millisecondsSinceEpoch);
+
+      if (kDebugMode) {
+        print('State saved successfully');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error saving state: $e');
+        print('Error saving app closure time: $e');
+      }
+    }
+  }
+
+// Method to update scroll position from UI
+  void updateListScrollPosition(double offset) {
+    listScrollOffset.value = offset;
+    _debouncedSaveState();
+  }
+
+  bool shouldRestoreScrollPosition() {
+    final lastCloseTime = lastAppCloseTime;
+    if (lastCloseTime == null) return false;
+
+    final timeSinceClose = DateTime.now()
+        .difference(DateTime.fromMillisecondsSinceEpoch(lastCloseTime));
+
+    return timeSinceClose < kScrollPositionRestoreThreshold;
+  }
+
+  void _debouncedSaveState() {
+    _scrollDebounceTimer?.cancel();
+    _scrollDebounceTimer = Timer(const Duration(seconds: 1), _saveState);
   }
 
   void _initializeAudioPlayer() {
     audioPlayer.playerStateStream.listen((state) {
       isPlaying.value = state.playing;
+      if (state.playing) {
+        _saveState();
+      }
     });
 
     audioPlayer.processingStateStream.listen((state) {
@@ -195,8 +346,21 @@ class PlayerController extends BaseController {
 
   @override
   void onClose() {
+    _scrollDebounceTimer?.cancel();
+    _saveState();
     audioPlayer.dispose();
     super.onClose();
+  }
+
+  LoopMode _getLoopMode(RepeatMode mode) {
+    switch (mode) {
+      case RepeatMode.off:
+        return LoopMode.off;
+      case RepeatMode.one:
+        return LoopMode.one;
+      case RepeatMode.all:
+        return LoopMode.all;
+    }
   }
 }
 

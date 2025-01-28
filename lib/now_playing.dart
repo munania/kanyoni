@@ -448,10 +448,6 @@ class ExtraControls extends StatelessWidget {
           },
           itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
             const PopupMenuItem<String>(
-              value: 'Favorites',
-              child: Text('Add to Favorites'),
-            ),
-            const PopupMenuItem<String>(
               value: 'Custom Playlist',
               child: Text('Create New Playlist'),
             ),

@@ -152,7 +152,7 @@ class PlaylistView extends StatelessWidget {
           TextButton(
             onPressed: () {
               if (nameController.text.isNotEmpty) {
-                controller.renamePlaylist(playlist.id, nameController.text);
+                controller.renameMyPlaylist(playlist.id, nameController.text);
                 Navigator.pop(context);
               }
             },

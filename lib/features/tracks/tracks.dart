@@ -20,7 +20,7 @@ class TracksView extends StatelessWidget {
   }
 }
 
-class TracksList extends StatelessWidget {
+class TracksList extends StatefulWidget {
   final PlayerController playerController;
   final bool isDarkMode;
 
@@ -31,13 +31,49 @@ class TracksList extends StatelessWidget {
   });
 
   @override
+  State<TracksList> createState() => _TracksListState();
+}
+
+class _TracksListState extends State<TracksList> {
+  late ScrollController _scrollController;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController = ScrollController(
+      // Only restore scroll position if app was recently closed
+      initialScrollOffset: DateTime.now().difference(
+          DateTime.fromMillisecondsSinceEpoch(
+              widget.playerController.lastAppCloseTime ?? 0
+          )
+      ) < Duration(minutes: 30)
+          ? widget.playerController.listScrollOffset.value
+          : 0.0,
+    );
+
+    _scrollController.addListener(_onScroll);
+  }
+
+  void _onScroll() {
+    widget.playerController.updateListScrollPosition(_scrollController.offset);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Obx(() {
       return ListView.builder(
-        physics: BouncingScrollPhysics(),
-        itemCount: playerController.songs.length,
+        controller: _scrollController,
+        physics: const BouncingScrollPhysics(),
+        itemCount: widget.playerController.songs.length,
         itemBuilder: (context, index) {
-          final song = playerController.songs[index];
+          final song = widget.playerController.songs[index];
           return ListTile(
             leading: QueryArtworkWidget(
               id: song.id,
@@ -45,7 +81,7 @@ class TracksList extends StatelessWidget {
               nullArtworkWidget: Icon(
                 size: 50,
                 Iconsax.music,
-                color: isDarkMode
+                color: widget.isDarkMode
                     ? AppTheme.playerControlsDark
                     : AppTheme.playerControlsLight,
               ),
@@ -62,7 +98,7 @@ class TracksList extends StatelessWidget {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
-            onTap: () => playerController.playSong(index),
+            onTap: () => widget.playerController.playSong(index),
           );
         },
       );

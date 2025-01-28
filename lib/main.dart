@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:kanyoni/features/folders/controllers/folder_controller.dart';
 import 'package:permission_handler/permission_handler.dart'; // Add this import
 import 'package:sliding_up_panel/sliding_up_panel.dart';
 
@@ -22,6 +23,7 @@ void main() async {
   Get.put(ArtistController());
   Get.put(GenreController());
   Get.put(PlayerController());
+  Get.put(FolderController());
   runApp(const MyApp());
 }
 
