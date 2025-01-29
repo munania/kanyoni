@@ -2,8 +2,9 @@
 Kanyoni
 
 ## To-Do
-Add Background music playing
-Fix playlist renaming
+Add Background music playing.
+
+Fix playlist renaming.
 
 ## Description
 Kanyoni is a simple offline music app.
@@ -13,6 +14,9 @@ Clone the repository
 
 ```bash
 git clone https://github.com/munania/kanyoni.git
+```
+```bash
+flutter pub get
 ```
 
 ## Usage
