@@ -7,12 +7,29 @@ import '../../utils/theme/theme.dart';
 import 'controllers/folder_controller.dart';
 import 'folders_details.dart';
 
-class FoldersView extends StatelessWidget {
+class FoldersView extends StatefulWidget {
   const FoldersView({super.key});
 
   @override
+  State<FoldersView> createState() => _FoldersViewState();
+}
+
+class _FoldersViewState extends State<FoldersView>
+    with AutomaticKeepAliveClientMixin {
+  late final FolderController folderController;
+
+  @override
+  bool get wantKeepAlive => true;
+
+  @override
+  void initState() {
+    super.initState();
+    folderController = Get.find<FolderController>();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final folderController = Get.find<FolderController>();
+    super.build(context);
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
     return Obx(() => ListView.builder(

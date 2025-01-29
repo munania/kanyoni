@@ -24,7 +24,8 @@ class AlbumCard extends StatelessWidget {
       child: Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(AppTheme.cornerRadius),
-          color: isDarkMode ? Colors.grey[900] : Colors.grey[100],
+          color:
+              isDarkMode ? AppTheme.nowPlayingDark : AppTheme.nowPlayingLight,
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

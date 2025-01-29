@@ -1,9 +1,7 @@
-// lib/main.dart
-
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:kanyoni/features/folders/controllers/folder_controller.dart';
-import 'package:permission_handler/permission_handler.dart'; // Add this import
+import 'package:permission_handler/permission_handler.dart';
 import 'package:sliding_up_panel/sliding_up_panel.dart';
 
 import 'controllers/player_controller.dart';
@@ -12,7 +10,7 @@ import 'features/artists/controller/artists_controller.dart';
 import 'features/genres/controller/genres_controller.dart';
 import 'features/playlists/controller/playlists_controller.dart';
 import 'homepage.dart';
-import 'now_playing.dart'; // Your separated now playing components
+import 'now_playing.dart';
 import 'utils/theme/theme.dart';
 
 void main() async {

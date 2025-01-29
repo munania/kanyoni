@@ -10,7 +10,7 @@ import 'package:sliding_up_panel/sliding_up_panel.dart';
 import '../../now_playing.dart';
 import '../../utils/theme/theme.dart';
 
-class PlaylistDetailsView extends StatelessWidget {
+class PlaylistDetailsView extends StatefulWidget {
   final PlaylistModel playlist;
 
   const PlaylistDetailsView({
@@ -19,262 +19,273 @@ class PlaylistDetailsView extends StatelessWidget {
   });
 
   @override
+  State<PlaylistDetailsView> createState() => _PlaylistDetailsViewState();
+}
+
+class _PlaylistDetailsViewState extends State<PlaylistDetailsView>
+    with AutomaticKeepAliveClientMixin {
+  late final PlaylistController _playlistController;
+  late final PlayerController _playerController;
+  final _panelController = PanelController();
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  bool get wantKeepAlive => true;
+
+  @override
+  void initState() {
+    super.initState();
+    _playlistController = Get.find<PlaylistController>();
+    _playerController = Get.find<PlayerController>();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final playlistController = Get.find<PlaylistController>();
-    final playerController = Get.find<PlayerController>();
-    final panelController = PanelController();
+    super.build(context);
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    playlistController.songCount.value = playlist.numOfSongs;
 
     return Scaffold(
       body: SlidingUpPanel(
-        controller: panelController,
+        controller: _panelController,
         minHeight: 70,
         maxHeight: MediaQuery.of(context).size.height,
         borderRadius: const BorderRadius.vertical(
           top: Radius.circular(AppTheme.cornerRadius),
         ),
         panel: NowPlayingPanel(
-          playerController: playerController,
+          playerController: _playerController,
           isDarkMode: isDarkMode,
         ),
         collapsed: CollapsedPanel(
-          playerController: playerController,
+          playerController: _playerController,
           isDarkMode: isDarkMode,
         ),
         body: CustomScrollView(
+          controller: _scrollController,
           slivers: [
-            SliverAppBar(
-                actions: [
-                  IconButton(
-                    icon: const Icon(
-                      Iconsax.add_square,
-                      size: 30,
-                    ),
-                    onPressed: () => _showAddToPlaylistDialog(
-                        context, playlistController, playerController),
-                  ),
-                ],
-                expandedHeight: 300,
-                pinned: true,
-                flexibleSpace: FlexibleSpaceBar(
-                  centerTitle: true,
-                  title: Text(
-                    playlist.playlist.replaceAll(
-                        ' [kanyoni]', ''), // Remove the identifier here
-                    style: AppTheme.headlineLarge.copyWith(
-                      color: isDarkMode ? Colors.white : Colors.black,
-                    ),
-                  ),
-                  background: QueryArtworkWidget(
-                    id: playlist.id,
-                    type: ArtworkType.ARTIST,
-                    nullArtworkWidget: Container(
-                      color: isDarkMode ? Colors.grey[800] : Colors.grey[300],
-                      child: Icon(
-                        Iconsax.user,
-                        size: 100,
-                        color: isDarkMode
-                            ? AppTheme.playerControlsDark
-                            : AppTheme.playerControlsLight,
-                      ),
-                    ),
-                  ),
-                )),
-            SliverToBoxAdapter(
-              child: Obx(
-                () => Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                '${playlistController.songCount.value} songs',
-                                style: AppTheme.headlineMedium,
-                              ),
-                            ],
-                          ),
-                          ElevatedButton.icon(
-                            onPressed: () =>
-                                playlistController.playPlaylist(playlist.id),
-                            icon: Icon(Icons.play_arrow,
-                                color: isDarkMode
-                                    ? AppTheme.nowPlayingDark
-                                    : AppTheme.nowPlayingLight),
-                            label: Text(
-                              'Play All',
-                              style: TextStyle(
-                                  color: isDarkMode
-                                      ? AppTheme.nowPlayingDark
-                                      : AppTheme.nowPlayingLight),
-                            ),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: isDarkMode
-                                  ? AppTheme.playerControlsDark
-                                  : AppTheme.playerControlsLight,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-            SliverToBoxAdapter(
-              child: Obx(() {
-                if (playlistController.playlistSongs.isEmpty) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                final playlistSongs =
-                    playlistController.getPlaylistSongs(playlist.id);
-                print("ID here : ${playlist.id}");
-                print(
-                    "songs here : ${playlistController.getPlaylistSongs(playlist.id)}");
-                print("NEW here : ${playlistController.playlistSongs.length}");
-
-                if (playlistController.playlistSongs.isEmpty) {
-                  return Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Iconsax.music,
-                          size: 72,
-                          color: isDarkMode ? Colors.white38 : Colors.black38,
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          'No Songs',
-                          style: AppTheme.headlineMedium.copyWith(
-                            color: isDarkMode ? Colors.white38 : Colors.black38,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Add songs to this playlist',
-                          style: AppTheme.bodyMedium.copyWith(
-                            color: isDarkMode ? Colors.white38 : Colors.black38,
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                }
-
-                return ListView.builder(
-                  shrinkWrap: true,
-                  physics: NeverScrollableScrollPhysics(),
-                  padding: const EdgeInsets.only(bottom: 90),
-                  itemCount: playlistSongs.length,
-                  itemBuilder: (context, index) {
-                    final playlistSong = playlistSongs[index];
-                    // Find the matching song from the main songs list
-                    final mainSong = playlistController.songs.firstWhereOrNull(
-                        (s) =>
-                            s.title == playlistSong.title &&
-                            s.artist == playlistSong.artist);
-
-                    // Use the main song if found, otherwise use playlist song
-                    final songToUse = mainSong ?? playlistSong;
-
-                    return PlaylistSongCard(
-                      key: ValueKey(songToUse.id),
-                      song: songToUse,
-                      isDarkMode: isDarkMode,
-                      onPlay: () {
-                        playerController.currentPlaylist.value = playlistSongs;
-                        playerController.playSong(songToUse);
-                      },
-                      onRemove: () {
-                        playlistController.removeFromPlaylist(
-                            playlist.id, playlistSong.id);
-                        playlistController.refreshPlaylists();
-                      },
-                    );
-                  },
-                );
-              }),
-            )
+            _buildAppBar(isDarkMode),
+            _buildHeaderSection(isDarkMode),
+            _buildSongList(isDarkMode),
           ],
         ),
       ),
     );
   }
 
-  void _showAddToPlaylistDialog(
-    BuildContext context,
-    PlaylistController playlistController,
-    PlayerController playerController,
-  ) {
+  SliverAppBar _buildAppBar(bool isDarkMode) {
+    return SliverAppBar(
+      actions: [
+        IconButton(
+          icon: const Icon(Iconsax.add_square, size: 30),
+          onPressed: () => _showAddToPlaylistDialog(),
+        ),
+      ],
+      expandedHeight: 300,
+      pinned: true,
+      flexibleSpace: FlexibleSpaceBar(
+        centerTitle: true,
+        title: Text(
+          widget.playlist.playlist.replaceAll(' [kanyoni]', ''),
+          overflow: TextOverflow.ellipsis,
+          style: AppTheme.bodyLarge.copyWith(
+            color: isDarkMode ? Colors.white : Colors.black,
+          ),
+        ),
+        background: QueryArtworkWidget(
+          id: widget.playlist.id,
+          type: ArtworkType.ARTIST,
+          nullArtworkWidget: Container(
+            color: isDarkMode ? Colors.grey[800] : Colors.grey[300],
+            child: Icon(
+              Iconsax.user,
+              size: 100,
+              color: isDarkMode
+                  ? AppTheme.playerControlsDark
+                  : AppTheme.playerControlsLight,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  SliverToBoxAdapter _buildHeaderSection(bool isDarkMode) {
+    return SliverToBoxAdapter(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Obx(() {
+                    final songCount = _playlistController
+                        .getPlaylistSongs(widget.playlist.id)
+                        .length;
+                    return Text(
+                      '$songCount ${songCount == 1 ? 'song' : 'songs'}',
+                      style: AppTheme.headlineMedium,
+                    );
+                  }),
+                ),
+                const SizedBox(width: 8),
+                ElevatedButton.icon(
+                  onPressed: () => _playlistController.playPlaylist(
+                    widget.playlist.id,
+                    startIndex: 0,
+                  ),
+                  icon: Icon(
+                    Icons.play_arrow,
+                    color: isDarkMode
+                        ? AppTheme.nowPlayingDark
+                        : AppTheme.nowPlayingLight,
+                  ),
+                  label: Text(
+                    'Play All',
+                    style: TextStyle(
+                      color: isDarkMode
+                          ? AppTheme.nowPlayingDark
+                          : AppTheme.nowPlayingLight,
+                    ),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: isDarkMode
+                        ? AppTheme.playerControlsDark
+                        : AppTheme.playerControlsLight,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSongList(bool isDarkMode) {
+    return Obx(() {
+      final playlistSongs =
+          _playlistController.getPlaylistSongs(widget.playlist.id);
+
+      if (playlistSongs.isEmpty) {
+        return SliverFillRemaining(
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Iconsax.music,
+                  size: 72,
+                  color: isDarkMode ? Colors.white38 : Colors.black38,
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'No Songs',
+                  style: AppTheme.headlineMedium.copyWith(
+                    color: isDarkMode ? Colors.white38 : Colors.black38,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Add songs to this playlist',
+                  style: AppTheme.bodyMedium.copyWith(
+                    color: isDarkMode ? Colors.white38 : Colors.black38,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      }
+
+      return SliverList(
+        delegate: SliverChildBuilderDelegate(
+          (context, index) {
+            final song = playlistSongs[index];
+            return PlaylistSongCard(
+              key: ValueKey(song.id),
+              song: song,
+              isDarkMode: isDarkMode,
+              onPlay: () {
+                _playerController.currentPlaylist.value = playlistSongs;
+                _playerController.playSong(song);
+              },
+              onRemove: () => _playlistController.removeFromPlaylist(
+                widget.playlist.id,
+                song.id,
+              ),
+            );
+          },
+          childCount: playlistSongs.length,
+        ),
+      );
+    });
+  }
+
+  void _showAddToPlaylistDialog() {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Add Songs'),
         content: SizedBox(
           width: double.maxFinite,
-          height: 400,
+          height: MediaQuery.of(context).size.height * 0.6,
           child: Obx(() {
-            final songs = playerController.songs;
+            final songs = _playerController.songs;
+            final playlistSongs =
+                _playlistController.getPlaylistSongs(widget.playlist.id);
+
             return ListView.builder(
-              shrinkWrap: true,
               itemCount: songs.length,
               itemBuilder: (context, index) {
                 final song = songs[index];
-                return Obx(() {
-                  final isInPlaylist =
-                      playlistController.isInPlaylist(playlist.id, song.title);
+                final isInPlaylist = playlistSongs.any((s) => s.id == song.id);
 
-                  return CheckboxListTile(
-                    title: Text(
-                      song.title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    subtitle: Text(
-                      song.artist ?? 'Unknown Artist',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    value: isInPlaylist,
-                    onChanged: (value) async {
-                      if (value ?? false) {
-                        final success = await playlistController.addToPlaylist(
-                            playlist.id, song.id);
-                        if (!success && context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Failed to add song to playlist'),
-                              duration: Duration(seconds: 2),
-                            ),
-                          );
-                        }
-                      } else {
-                        await playlistController.removeFromPlaylist(
-                            playlist.id, song.id);
-                      }
-                    },
-                  );
-                });
+                return CheckboxListTile(
+                  title: Text(
+                    song.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  subtitle: Text(
+                    song.artist ?? 'Unknown Artist',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  value: isInPlaylist,
+                  onChanged: (value) async {
+                    if (value ?? false) {
+                      await _playlistController.addToPlaylist(
+                        widget.playlist.id,
+                        song.id,
+                      );
+                    } else {
+                      await _playlistController.removeFromPlaylist(
+                        widget.playlist.id,
+                        song.id,
+                      );
+                    }
+                  },
+                );
               },
             );
           }),
         ),
         actions: [
           TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-            },
+            onPressed: () => Navigator.pop(context),
             child: const Text('Done'),
           ),
         ],
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
   }
 }

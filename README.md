@@ -1,10 +1,26 @@
-# kanyoni
+# Name
+Kanyoni
 
-A music player
-
-------------------- ToDo ----------------------
-Background music playing
+## To-Do
+Add Background music playing
 Fix playlist renaming
-Show music folders and their tracks
+
+## Description
+Kanyoni is a simple offline music app.
+
+## Installation
+Clone the repository
+
+```bash
+git clone https://github.com/munania/kanyoni.git
+```
+
+## Usage
+
+## Contribution
+
+## License
+
+
 
 

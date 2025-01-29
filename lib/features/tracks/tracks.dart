@@ -12,96 +12,104 @@ class TracksView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final playerController = Get.find<PlayerController>();
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-
-    return TracksList(
-        isDarkMode: isDarkMode, playerController: playerController);
+    return const TracksList();
   }
 }
 
 class TracksList extends StatefulWidget {
-  final PlayerController playerController;
-  final bool isDarkMode;
-
-  const TracksList({
-    super.key,
-    required this.isDarkMode,
-    required this.playerController,
-  });
+  const TracksList({super.key});
 
   @override
   State<TracksList> createState() => _TracksListState();
 }
 
-class _TracksListState extends State<TracksList> {
-  late ScrollController _scrollController;
+class _TracksListState extends State<TracksList>
+    with AutomaticKeepAliveClientMixin {
+  late final PlayerController _playerController;
+
+  @override
+  bool get wantKeepAlive => true;
 
   @override
   void initState() {
     super.initState();
-    _scrollController = ScrollController(
-      // Only restore scroll position if app was recently closed
-      initialScrollOffset: DateTime.now().difference(
-          DateTime.fromMillisecondsSinceEpoch(
-              widget.playerController.lastAppCloseTime ?? 0
-          )
-      ) < Duration(minutes: 30)
-          ? widget.playerController.listScrollOffset.value
-          : 0.0,
-    );
-
-    _scrollController.addListener(_onScroll);
-  }
-
-  void _onScroll() {
-    widget.playerController.updateListScrollPosition(_scrollController.offset);
+    _playerController = Get.find<PlayerController>();
   }
 
   @override
   void dispose() {
-    _scrollController.removeListener(_onScroll);
-    _scrollController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Obx(() {
-      return ListView.builder(
-        controller: _scrollController,
-        physics: const BouncingScrollPhysics(),
-        itemCount: widget.playerController.songs.length,
-        itemBuilder: (context, index) {
-          final song = widget.playerController.songs[index];
-          return ListTile(
-            leading: QueryArtworkWidget(
-              id: song.id,
-              type: ArtworkType.AUDIO,
-              nullArtworkWidget: Icon(
-                size: 50,
-                Iconsax.music,
-                color: widget.isDarkMode
-                    ? AppTheme.playerControlsDark
-                    : AppTheme.playerControlsLight,
-              ),
+    super.build(context);
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
+    return Obx(
+      () => CustomScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        slivers: [
+          SliverList(
+            delegate: SliverChildBuilderDelegate(
+              (context, index) {
+                final song = _playerController.songs[index];
+                return _TrackListItem(
+                  song: song,
+                  index: index,
+                  isDarkMode: isDarkMode,
+                  playerController: _playerController,
+                );
+              },
+              childCount: _playerController.songs.length,
             ),
-            title: Text(
-              song.title,
-              style: AppTheme.bodyLarge,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            subtitle: Text(
-              song.artist ?? 'Unknown Artist',
-              style: AppTheme.bodyMedium,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            onTap: () => widget.playerController.playSong(index),
-          );
-        },
-      );
-    });
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _TrackListItem extends StatelessWidget {
+  final SongModel song;
+  final int index;
+  final bool isDarkMode;
+  final PlayerController playerController;
+
+  const _TrackListItem({
+    required this.song,
+    required this.index,
+    required this.isDarkMode,
+    required this.playerController,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      leading: QueryArtworkWidget(
+        id: song.id,
+        type: ArtworkType.AUDIO,
+        nullArtworkWidget: Icon(
+          Iconsax.music,
+          size: 50,
+          color: isDarkMode
+              ? AppTheme.playerControlsDark
+              : AppTheme.playerControlsLight,
+        ),
+      ),
+      title: Text(
+        song.title,
+        style: AppTheme.bodyLarge,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      ),
+      subtitle: Text(
+        song.artist ?? 'Unknown Artist',
+        style: AppTheme.bodyMedium,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      ),
+      onTap: () => playerController.playSong(index),
+    );
   }
 }

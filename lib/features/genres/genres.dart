@@ -3,9 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:kanyoni/features/genres/controller/genres_controller.dart';
 import 'package:on_audio_query_forked/on_audio_query.dart';
-import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 
-import '../artists/controller/artists_controller.dart';
 import 'genre_card.dart';
 import 'genre_details.dart';
 
@@ -30,45 +28,27 @@ class GenreView extends StatefulWidget {
   State<StatefulWidget> createState() => _GenreViewState();
 }
 
-class _GenreViewState extends State<GenreView> {
-  late ItemScrollController _itemScrollController;
-  late ItemPositionsListener _itemPositionsListener;
-  late ArtistController genreController;
+class _GenreViewState extends State<GenreView>
+    with AutomaticKeepAliveClientMixin {
+  late GenreController genreController;
+
+  @override
+  bool get wantKeepAlive => true;
 
   @override
   void initState() {
     super.initState();
-    genreController = Get.find<ArtistController>();
-    _itemScrollController = ItemScrollController();
-    _itemPositionsListener = ItemPositionsListener.create();
-
-    if (genreController.shouldRestoreScrollPosition()) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _itemScrollController.jumpTo(
-          index: (genreController.listScrollOffset.value / 100).floor(),
-        );
-      });
-    }
-
-    _itemPositionsListener.itemPositions.addListener(_onScroll);
-  }
-
-  void _onScroll() {
-    final positions = _itemPositionsListener.itemPositions.value;
-    if (positions.isNotEmpty) {
-      final firstItem = positions.first;
-      genreController.updateListScrollPosition(firstItem.index * 100.0);
-    }
+    genreController = Get.find<GenreController>();
   }
 
   @override
   void dispose() {
-    _itemPositionsListener.itemPositions.removeListener(_onScroll);
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     final genreController = Get.find<GenreController>();
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
@@ -110,8 +90,6 @@ class _GenreViewState extends State<GenreView> {
       return SizedBox(
         height: MediaQuery.of(context).size.height,
         child: AzListView(
-          itemScrollController: _itemScrollController,
-          itemPositionsListener: _itemPositionsListener,
           padding:
               const EdgeInsets.only(right: 40, left: 16, top: 16, bottom: 16),
           data: genreBeans,

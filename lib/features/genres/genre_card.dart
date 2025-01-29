@@ -19,8 +19,9 @@ class GenreCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      color: isDarkMode ? Colors.grey[900] : Colors.grey[100],
+      color: isDarkMode ? AppTheme.nowPlayingDark : AppTheme.nowPlayingLight,
       margin: const EdgeInsets.only(bottom: 12),
+      elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppTheme.cornerRadius),
       ),

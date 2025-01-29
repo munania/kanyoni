@@ -8,12 +8,30 @@ import 'package:on_audio_query_forked/on_audio_query.dart';
 import '../../utils/theme/theme.dart';
 import 'controller/playlists_controller.dart';
 
-class PlaylistView extends StatelessWidget {
+class PlaylistView extends StatefulWidget {
   const PlaylistView({super.key});
 
   @override
+  State<PlaylistView> createState() => _PlaylistViewState();
+}
+
+class _PlaylistViewState extends State<PlaylistView>
+    with AutomaticKeepAliveClientMixin {
+  late final PlaylistController controller;
+  final _scrollController = ScrollController();
+
+  @override
+  bool get wantKeepAlive => true;
+
+  @override
+  void initState() {
+    super.initState();
+    controller = Get.find<PlaylistController>();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final controller = Get.find<PlaylistController>();
+    super.build(context);
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
@@ -21,76 +39,70 @@ class PlaylistView extends StatelessWidget {
         title: const Text('Playlists'),
         actions: [
           IconButton(
-            icon: const Icon(
-              Iconsax.add_square,
-              size: 30,
-            ),
-            onPressed: () => _showCreatePlaylistDialog(context, controller),
+            icon: const Icon(Iconsax.add_square, size: 30),
+            onPressed: () => _showCreatePlaylistDialog(),
           ),
         ],
       ),
       body: Obx(() {
         if (controller.playlists.isEmpty) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Iconsax.music_playlist,
-                  size: 72,
-                  color: isDarkMode ? Colors.white38 : Colors.black38,
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  'No Playlists',
-                  style: AppTheme.headlineMedium.copyWith(
-                    color: isDarkMode ? Colors.white38 : Colors.black38,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Create a playlist to organize your songs',
-                  style: AppTheme.bodyMedium.copyWith(
-                    color: isDarkMode ? Colors.white38 : Colors.black38,
-                  ),
-                ),
-              ],
-            ),
-          );
+          return _buildEmptyState(isDarkMode);
         }
 
-        return ListView.builder(
-          physics: const BouncingScrollPhysics(),
-          padding: const EdgeInsets.all(16),
-          itemCount: controller.playlists.length,
-          itemBuilder: (context, index) {
-            final playlist = controller.playlists[index];
-            return PlaylistCard(
-              playlist: playlist,
-              isDarkMode: isDarkMode,
-              onTap: () =>
-                  Get.to(() => PlaylistDetailsView(playlist: playlist)),
-              onRename: () => _showRenamePlaylistDialog(
-                context,
-                controller,
-                playlist,
-              ),
-              onDelete: () => _showDeletePlaylistDialog(
-                context,
-                controller,
-                playlist,
-              ),
-            );
-          },
-        );
+        return _buildPlaylistList(isDarkMode);
       }),
     );
   }
 
-  void _showCreatePlaylistDialog(
-    BuildContext context,
-    PlaylistController controller,
-  ) {
+  Widget _buildEmptyState(bool isDarkMode) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Iconsax.music_playlist,
+            size: 72,
+            color: isDarkMode ? Colors.white38 : Colors.black38,
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'No Playlists',
+            style: AppTheme.headlineMedium.copyWith(
+              color: isDarkMode ? Colors.white38 : Colors.black38,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Create a playlist to organize your songs',
+            style: AppTheme.bodyMedium.copyWith(
+              color: isDarkMode ? Colors.white38 : Colors.black38,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPlaylistList(bool isDarkMode) {
+    return ListView.builder(
+      controller: _scrollController,
+      physics: const BouncingScrollPhysics(),
+      padding: const EdgeInsets.all(16),
+      itemCount: controller.playlists.length,
+      itemBuilder: (context, index) {
+        final playlist = controller.playlists[index];
+        return PlaylistCard(
+          playlist: playlist,
+          isDarkMode: isDarkMode,
+          onTap: () => Get.to(() => PlaylistDetailsView(playlist: playlist)),
+          onRename: () => _showRenamePlaylistDialog(playlist),
+          onDelete: () => _showDeletePlaylistDialog(playlist),
+        );
+      },
+    );
+  }
+
+  void _showCreatePlaylistDialog() {
     final nameController = TextEditingController();
 
     showDialog(
@@ -124,13 +136,10 @@ class PlaylistView extends StatelessWidget {
     );
   }
 
-  void _showRenamePlaylistDialog(
-    BuildContext context,
-    PlaylistController controller,
-    PlaylistModel playlist,
-  ) {
+  void _showRenamePlaylistDialog(PlaylistModel playlist) {
     final nameController = TextEditingController(
-        text: playlist.playlist.replaceAll(' [kanyoni]', ''));
+      text: playlist.playlist.replaceAll(' [kanyoni]', ''),
+    );
 
     showDialog(
       context: context,
@@ -152,7 +161,7 @@ class PlaylistView extends StatelessWidget {
           TextButton(
             onPressed: () {
               if (nameController.text.isNotEmpty) {
-                controller.renameMyPlaylist(playlist.id, nameController.text);
+                controller.renamePlaylist(playlist.id, nameController.text);
                 Navigator.pop(context);
               }
             },
@@ -163,11 +172,7 @@ class PlaylistView extends StatelessWidget {
     );
   }
 
-  void _showDeletePlaylistDialog(
-    BuildContext context,
-    PlaylistController controller,
-    PlaylistModel playlist,
-  ) {
+  void _showDeletePlaylistDialog(PlaylistModel playlist) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -184,13 +189,17 @@ class PlaylistView extends StatelessWidget {
               controller.deletePlaylist(playlist.id);
               Navigator.pop(context);
             },
-            style: TextButton.styleFrom(
-              foregroundColor: Colors.red,
-            ),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
             child: const Text('Delete'),
           ),
         ],
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
   }
 }
