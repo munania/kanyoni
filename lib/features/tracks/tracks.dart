@@ -1,4 +1,3 @@
-// views/tracks_view.dart
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:iconsax/iconsax.dart';
@@ -109,7 +108,7 @@ class _TrackListItem extends StatelessWidget {
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
       ),
-      onTap: () => playerController.playSong(index),
+      onTap: () => playerController.playSong(song),
     );
   }
 }

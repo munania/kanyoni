@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:on_audio_query_forked/on_audio_query.dart';
 
 import '../../utils/theme/theme.dart';
+import 'controller/playlists_controller.dart';
 
 class PlaylistCard extends StatelessWidget {
   final PlaylistModel playlist;
@@ -22,6 +24,9 @@ class PlaylistCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    late final PlaylistController playlistController =
+        Get.find<PlaylistController>();
+
     return Card(
       color: isDarkMode ? AppTheme.nowPlayingDark : AppTheme.nowPlayingLight,
       elevation: 0,
@@ -65,11 +70,18 @@ class PlaylistCard extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 4),
-                    Text(
-                      '${playlist.numOfSongs} songs',
-                      style: AppTheme.bodyMedium,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                    Obx(
+                      () {
+                        final songCount = playlistController
+                            .getPlaylistSongs(playlist.id)
+                            .length;
+                        return Text(
+                          '$songCount ${songCount == 1 ? 'song' : 'songs'}',
+                          style: AppTheme.bodyMedium,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        );
+                      },
                     ),
                   ],
                 ),

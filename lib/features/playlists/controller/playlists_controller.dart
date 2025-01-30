@@ -109,18 +109,30 @@ class PlaylistController extends BaseController {
     }
   }
 
-  Future<bool> addToPlaylist(int playlistId, int songId) async {
-    if (_isSongInPlaylist(playlistId, songId)) return true;
-
+  Future<bool> addToPlaylist(int playlistId, int systemSongId) async {
     try {
-      final result = await audioQuery.addToPlaylist(playlistId, songId);
-      if (_isOperationSuccessful(result)) {
-        await _updateCachedPlaylist(playlistId, songId);
+      final systemSong = _playerController.songs.firstWhere(
+        (s) => s.id == systemSongId,
+      );
+
+      final existingIds =
+          _playlistSongsCache[playlistId]?.map((s) => s.id) ?? [];
+      final playlistSongId = _findSystemSongId(systemSong) ?? systemSongId;
+
+      if (existingIds.contains(playlistSongId)) return true;
+
+      final result = await audioQuery.addToPlaylist(playlistId, playlistSongId);
+
+      if (result) {
+        _playlistSongsCache[playlistId] = [
+          ..._playlistSongsCache[playlistId] ?? [],
+          systemSong
+        ];
+        _playlistSongsCache.refresh();
         return true;
       }
       return false;
     } catch (e) {
-      _handleError('Adding song to playlist', e);
       return false;
     }
   }
@@ -152,7 +164,28 @@ class PlaylistController extends BaseController {
         result.toString().toLowerCase() == 'true';
   }
 
+  int? _findSystemSongId(SongModel playlistSong) {
+    try {
+      return _playerController.songs
+          .firstWhere(
+            (systemSong) => _areSongsMatching(playlistSong, systemSong),
+          )
+          .id;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  bool _areSongsMatching(SongModel a, SongModel b) {
+    return a.title == b.title &&
+        a.artist == b.artist &&
+        a.duration == b.duration &&
+        a.data == b.data;
+  }
+
   bool _isSongInPlaylist(int playlistId, int songId) {
+    print('Cache');
+    print(_playlistSongsCache);
     return _playlistSongsCache[playlistId]?.any((s) => s.id == songId) ?? false;
   }
 

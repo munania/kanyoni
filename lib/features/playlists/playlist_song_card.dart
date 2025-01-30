@@ -42,15 +42,12 @@ class PlaylistSongCard extends StatelessWidget {
                   child: QueryArtworkWidget(
                     id: song.id,
                     type: ArtworkType.AUDIO,
-                    nullArtworkWidget: Container(
-                      color: isDarkMode ? Colors.grey[800] : Colors.grey[300],
-                      child: Icon(
-                        Iconsax.music,
-                        size: 30,
-                        color: isDarkMode
-                            ? AppTheme.playerControlsDark
-                            : AppTheme.playerControlsLight,
-                      ),
+                    nullArtworkWidget: Icon(
+                      Iconsax.music,
+                      size: 50,
+                      color: isDarkMode
+                          ? AppTheme.playerControlsDark
+                          : AppTheme.playerControlsLight,
                     ),
                   ),
                 ),

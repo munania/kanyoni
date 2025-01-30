@@ -214,15 +214,18 @@ class PlayerController extends BaseController {
     SongModel songToPlay;
 
     if (input is SongModel) {
+      // Handle direct song input
       songToPlay = input;
       index = currentPlaylist.indexWhere((song) =>
           song.title == songToPlay.title && song.artist == songToPlay.artist);
 
+      // Add to playlist if not found
       if (index == -1) {
         currentPlaylist.add(songToPlay);
         index = currentPlaylist.length - 1;
       }
     } else if (input is int) {
+      // Handle index-based input
       index = input;
       if (index >= 0 && index < currentPlaylist.length) {
         songToPlay = currentPlaylist[index];

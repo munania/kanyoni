@@ -66,6 +66,11 @@ class _PlaylistDetailsViewState extends State<PlaylistDetailsView>
             _buildAppBar(isDarkMode),
             _buildHeaderSection(isDarkMode),
             _buildSongList(isDarkMode),
+            SliverToBoxAdapter(
+              child: SizedBox(
+                height: 60,
+              ),
+            )
           ],
         ),
       ),
@@ -241,7 +246,11 @@ class _PlaylistDetailsViewState extends State<PlaylistDetailsView>
               itemCount: songs.length,
               itemBuilder: (context, index) {
                 final song = songs[index];
-                final isInPlaylist = playlistSongs.any((s) => s.id == song.id);
+                final isInPlaylist = playlistSongs.any((s) =>
+                    s.title == song.title &&
+                    s.artist == song.artist &&
+                    s.duration == song.duration &&
+                    s.data == song.data);
 
                 return CheckboxListTile(
                   title: Text(
