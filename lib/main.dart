@@ -1,9 +1,11 @@
+import 'package:audio_service/audio_service.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:kanyoni/features/folders/controllers/folder_controller.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:sliding_up_panel/sliding_up_panel.dart';
 
+import 'controllers/media_player_handler.dart';
 import 'controllers/player_controller.dart';
 import 'features/albums/controller/album_controller.dart';
 import 'features/artists/controller/artists_controller.dart';
@@ -22,6 +24,16 @@ void main() async {
   Get.put(GenreController());
   Get.put(PlayerController());
   Get.put(FolderController());
+
+  await AudioService.init(
+    builder: () => MediaPlayerHandler(),
+    config: const AudioServiceConfig(
+      androidNotificationChannelId: 'com.your.app.channel',
+      androidNotificationChannelName: 'Music Playback',
+      androidNotificationOngoing: true,
+      androidStopForegroundOnPause: true,
+    ),
+  );
   runApp(const MyApp());
 }
 

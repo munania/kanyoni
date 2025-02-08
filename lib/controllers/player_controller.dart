@@ -335,6 +335,14 @@ class PlayerController extends BaseController {
     audioPlayer.setVolume(value);
   }
 
+  void setupAudioService() {
+    ever(currentSongIndex, (index) {
+      if (index >= 0 && index < currentPlaylist.length) {}
+    });
+
+    audioPlayer.playerStateStream.listen((state) {});
+  }
+
   Stream<PositionData> get positionDataStream =>
       CombineLatestStream.combine3<Duration, Duration?, bool, PositionData>(
         audioPlayer.positionStream,

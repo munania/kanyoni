@@ -48,6 +48,7 @@ class CollapsedPanel extends StatelessWidget {
                 type: ArtworkType.AUDIO,
                 nullArtworkWidget: Icon(
                   Iconsax.music,
+                  size: 50,
                   color: isDarkMode
                       ? AppTheme.playerControlsDark
                       : AppTheme.playerControlsLight,
