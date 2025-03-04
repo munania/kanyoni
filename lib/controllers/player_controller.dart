@@ -210,61 +210,53 @@ class PlayerController extends BaseController {
   }
 
   Future<void> playSong(dynamic input) async {
-    int index;
-    SongModel songToPlay;
+    try {
+      int index;
+      SongModel songToPlay;
+      List<SongModel> playlist = List.from(currentPlaylist);
 
-    if (input is SongModel) {
-      // Handle direct song input
-      songToPlay = input;
-      index = currentPlaylist.indexWhere((song) =>
-          song.title == songToPlay.title && song.artist == songToPlay.artist);
+      if (input is SongModel) {
+        // Handle direct song input
+        songToPlay = input;
+        index = playlist.indexWhere((song) =>
+            song.title == songToPlay.title && song.artist == songToPlay.artist);
 
-      // Add to playlist if not found
-      if (index == -1) {
-        currentPlaylist.add(songToPlay);
-        index = currentPlaylist.length - 1;
-      }
-    } else if (input is int) {
-      // Handle index-based input
-      index = input;
-      if (index >= 0 && index < currentPlaylist.length) {
-        songToPlay = currentPlaylist[index];
+        // Add to playlist if not found
+        if (index == -1) {
+          playlist.add(songToPlay);
+          index = playlist.length - 1;
+          currentPlaylist.value = playlist; // Update playlist once
+        }
+      } else if (input is int) {
+        // Handle index-based input
+        index = input;
+        if (index >= 0 && index < playlist.length) {
+          songToPlay = playlist[index];
+        } else {
+          Get.snackbar('Error', 'Invalid song index',
+              snackPosition: SnackPosition.BOTTOM);
+          return;
+        }
       } else {
-        Get.snackbar('Error', 'Invalid song index',
+        Get.snackbar('Error', 'Invalid input type for playSong',
             snackPosition: SnackPosition.BOTTOM);
         return;
       }
-    } else {
-      Get.snackbar('Error', 'Invalid input for playSong',
-          snackPosition: SnackPosition.BOTTOM);
-      return;
-    }
 
-    if (index >= 0 && index < currentPlaylist.length) {
+      // Update current index
+      currentSongIndex.value = index;
+
+      // Play the song
       try {
-        final mainSong = songs.firstWhereOrNull((s) =>
-            s.title == songToPlay.title && s.artist == songToPlay.artist);
-
-        final songUri = (mainSong ?? songToPlay).uri;
-
-        if (songUri != null) {
-          currentSongIndex.value = index;
-          await audioPlayer.setAudioSource(AudioSource.uri(Uri.parse(songUri)));
-          audioPlayer.play();
-        } else {
-          if (kDebugMode) {
-            print('Song URI is null for song: ${songToPlay.title}');
-          }
-          Get.snackbar('Error', 'Cannot play song. File not found.',
-              snackPosition: SnackPosition.BOTTOM);
-        }
+        await audioPlayer.setFilePath(songToPlay.data);
+        await audioPlayer.play();
       } catch (e) {
-        if (kDebugMode) {
-          print('Error playing song: $e');
-        }
-        Get.snackbar('Error', 'Failed to play song. File might be missing.',
+        Get.snackbar('Error', 'Error playing song: $e',
             snackPosition: SnackPosition.BOTTOM);
       }
+    } catch (e) {
+      Get.snackbar('Error', 'PlaySong error: $e',
+          snackPosition: SnackPosition.BOTTOM);
     }
   }
 

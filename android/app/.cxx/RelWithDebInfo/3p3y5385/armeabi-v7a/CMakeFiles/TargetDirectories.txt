@@ -1,0 +1,2 @@
+C:/Users/HomePC/Documents/dev/flutter/kanyoni/android/app/.cxx/RelWithDebInfo/3p3y5385/armeabi-v7a/CMakeFiles/edit_cache.dir
+C:/Users/HomePC/Documents/dev/flutter/kanyoni/android/app/.cxx/RelWithDebInfo/3p3y5385/armeabi-v7a/CMakeFiles/rebuild_cache.dir

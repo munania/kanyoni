@@ -21,14 +21,17 @@ class CollapsedPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Obx(() {
-      if (playerController.songs.isEmpty ||
-          playerController.currentSongIndex.value >=
-              playerController.songs.length) {
+      // Get the current values safely
+      final List<SongModel> playlist =
+          List.from(playerController.currentPlaylist);
+      final int index = playerController.currentSongIndex.value;
+
+      // Check bounds
+      if (playlist.isEmpty || index < 0 || index >= playlist.length) {
         return const SizedBox.shrink();
       }
 
-      final currentSong = playerController
-          .currentPlaylist[playerController.currentSongIndex.value];
+      final currentSong = playlist[index];
       final backgroundColor =
           isDarkMode ? AppTheme.nowPlayingDark : AppTheme.nowPlayingLight;
 
