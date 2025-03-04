@@ -7,6 +7,7 @@ import 'package:on_audio_query_forked/on_audio_query.dart';
 import 'package:sliding_up_panel/sliding_up_panel.dart';
 
 import '../../now_playing.dart';
+import '../../utils/helpers/helper_functions.dart';
 import '../../utils/theme/theme.dart';
 
 class AlbumDetailsView extends StatefulWidget {
@@ -51,7 +52,7 @@ class _AlbumDetailsViewState extends State<AlbumDetailsView>
   @override
   Widget build(BuildContext context) {
     super.build(context);
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final isDarkMode = THelperFunctions.isDarkMode(context);
 
     return Scaffold(
       body: SlidingUpPanel(

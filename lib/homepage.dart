@@ -1,13 +1,18 @@
 // lib/pages/home_page.dart
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:iconsax/iconsax.dart';
+import 'package:kanyoni/features/about/about.dart';
 import 'package:kanyoni/features/artists/artists.dart';
 import 'package:kanyoni/features/folders/folders.dart';
 import 'package:kanyoni/features/playlists/playlists.dart';
+import 'package:kanyoni/utils/helpers/helper_functions.dart';
 import 'package:kanyoni/utils/theme/theme.dart';
 
 import 'features/albums/album.dart';
 import 'features/genres/genres.dart';
+import 'features/search/search.dart';
+import 'features/settings/settings.dart';
 import 'features/tracks/tracks.dart';
 
 class HomePage extends StatefulWidget {
@@ -40,7 +45,7 @@ class _HomePageState extends State<HomePage>
 
   @override
   Widget build(BuildContext context) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final isDarkMode = THelperFunctions.isDarkMode(context);
     final backgroundColor =
         isDarkMode ? AppTheme.nowPlayingDark : AppTheme.nowPlayingLight;
 
@@ -94,19 +99,61 @@ class _HomePageState extends State<HomePage>
 
   AppBar _buildAppBar() {
     return AppBar(
-      elevation: 0,
       title: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: [
-            GestureDetector(
-              onTap: () {}, // TODO: Implement search
-              child: const Icon(Iconsax.search_favorite_1),
-            ),
-          ],
-        ),
+        padding: const EdgeInsets.only(left: 16.0),
+        child:
+            Text("Kanyoni", style: Theme.of(context).textTheme.headlineSmall),
       ),
+      actions: [
+        Padding(
+          padding: const EdgeInsets.only(right: 16.0),
+          child: Row(
+            children: [
+              IconButton(
+                icon: Icon(Iconsax.search_normal),
+                onPressed: () {
+                  Get.to(() => const SearchView());
+                },
+              ),
+              PopupMenuButton(
+                icon: const Icon(Icons.more_vert_rounded),
+                onSelected: (value) {
+                  switch (value) {
+                    case 'settings':
+                      Get.to(() => const SettingsView());
+                      break;
+                    case 'about':
+                      Get.to(() => AboutView());
+                      break;
+                  }
+                },
+                itemBuilder: (context) => [
+                  PopupMenuItem(
+                    value: 'settings',
+                    child: const Row(
+                      children: [
+                        Icon(Iconsax.setting_2),
+                        SizedBox(width: 8),
+                        Text('Settings'),
+                      ],
+                    ),
+                  ),
+                  PopupMenuItem(
+                    value: 'about',
+                    child: Row(
+                      children: [
+                        Icon(Iconsax.info_circle),
+                        SizedBox(width: 8),
+                        Text('About'),
+                      ],
+                    ),
+                  ),
+                ],
+              )
+            ],
+          ),
+        )
+      ],
     );
   }
 

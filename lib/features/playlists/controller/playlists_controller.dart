@@ -137,14 +137,6 @@ class PlaylistController extends BaseController {
     }
   }
 
-  Future<void> _updateCachedPlaylist(int playlistId, int songId) async {
-    final song = _playerController.songs.firstWhere((s) => s.id == songId,
-        orElse: () => throw Exception('Song not found'));
-
-    _playlistSongsCache.update(playlistId, (songs) => [...songs, song]);
-    _playlistSongsCache.refresh();
-  }
-
   Future<void> removeFromPlaylist(int playlistId, int songId) async {
     try {
       final result = await audioQuery.removeFromPlaylist(playlistId, songId);
@@ -181,12 +173,6 @@ class PlaylistController extends BaseController {
         a.artist == b.artist &&
         a.duration == b.duration &&
         a.data == b.data;
-  }
-
-  bool _isSongInPlaylist(int playlistId, int songId) {
-    print('Cache');
-    print(_playlistSongsCache);
-    return _playlistSongsCache[playlistId]?.any((s) => s.id == songId) ?? false;
   }
 
   List<SongModel> getPlaylistSongs(int playlistId) {

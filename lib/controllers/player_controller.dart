@@ -103,12 +103,17 @@ class PlayerController extends BaseController {
       if (lastSongId != null && songs.isNotEmpty) {
         final songIndex = songs.indexWhere((song) => song.id == lastSongId);
         if (songIndex != -1) {
-          await playSong(songIndex);
+          // First set up the song without playing
+          currentSongIndex.value = songIndex;
+          await audioPlayer.setFilePath(songs[songIndex].data);
+
+          // Then seek to the last position
           if (lastPosition != null) {
             await audioPlayer.seek(Duration(seconds: lastPosition));
-            // Don't auto-play, just seek to position
-            await audioPlayer.pause();
           }
+
+          // Ensure player is paused
+          await audioPlayer.pause();
         }
       }
     } catch (e) {
@@ -290,9 +295,11 @@ class PlayerController extends BaseController {
 
     if (isShuffle.value) {
       originalPlaylist = List.from(currentPlaylist);
-      currentPlaylist.shuffle();
+      var shuffledList = List<SongModel>.from(currentPlaylist);
+      shuffledList.shuffle();
+      currentPlaylist.value = shuffledList;
     } else if (originalPlaylist != null) {
-      currentPlaylist.value = originalPlaylist!;
+      currentPlaylist.value = List<SongModel>.from(originalPlaylist!);
       originalPlaylist = null;
     }
   }

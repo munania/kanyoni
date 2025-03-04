@@ -190,7 +190,7 @@ class ArtworkDisplay extends StatelessWidget {
         borderRadius: BorderRadius.circular(AppTheme.cornerRadius),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.2),
+            color: Colors.black..withAlpha(51),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),

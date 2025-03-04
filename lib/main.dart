@@ -2,6 +2,7 @@ import 'package:audio_service/audio_service.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:kanyoni/features/folders/controllers/folder_controller.dart';
+import 'package:kanyoni/utils/helpers/helper_functions.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:sliding_up_panel/sliding_up_panel.dart';
 
@@ -83,7 +84,7 @@ class AppLayout extends StatelessWidget {
   Widget build(BuildContext context) {
     final playerController = Get.find<PlayerController>();
     final panelController = PanelController();
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final isDarkMode = THelperFunctions.isDarkMode(context);
 
     return Scaffold(
       body: SlidingUpPanel(

@@ -75,7 +75,6 @@ class MediaPlayerHandler extends BaseAudioHandler {
   void _updatePlaybackState() {
     try {
       final position = _playerController.audioPlayer.position;
-      final duration = _playerController.audioPlayer.duration ?? Duration.zero;
       final state = _playerController.audioPlayer.playerState;
 
       playbackState.add(PlaybackState(
@@ -120,8 +119,6 @@ class MediaPlayerHandler extends BaseAudioHandler {
         return AudioProcessingState.ready;
       case ProcessingState.completed:
         return AudioProcessingState.completed;
-      default:
-        return AudioProcessingState.idle;
     }
   }
 

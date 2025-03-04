@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:kanyoni/features/albums/controller/album_controller.dart';
 
+import '../../utils/helpers/helper_functions.dart';
 import 'album_card.dart';
 import 'albums_details.dart';
 
@@ -33,7 +34,7 @@ class _AlbumsViewState extends State<AlbumsView>
   @override
   Widget build(BuildContext context) {
     super.build(context);
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final isDarkMode = THelperFunctions.isDarkMode(context);
 
     return Obx(() {
       return GridView.builder(
