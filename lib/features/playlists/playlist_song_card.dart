@@ -45,9 +45,7 @@ class PlaylistSongCard extends StatelessWidget {
                     nullArtworkWidget: Icon(
                       Iconsax.music,
                       size: 50,
-                      color: isDarkMode
-                          ? AppTheme.playerControlsDark
-                          : AppTheme.playerControlsLight,
+                      color: Colors.grey,
                     ),
                   ),
                 ),

@@ -44,9 +44,7 @@ class AlbumCard extends StatelessWidget {
                     child: Icon(
                       Iconsax.music_square,
                       size: 50,
-                      color: isDarkMode
-                          ? AppTheme.playerControlsDark
-                          : AppTheme.playerControlsLight,
+                      color: Colors.grey,
                     ),
                   ),
                 ),

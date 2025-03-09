@@ -104,9 +104,7 @@ class _ArtistsDetailsViewState extends State<ArtistsDetailsView>
             child: Icon(
               Iconsax.user,
               size: 100,
-              color: isDarkMode
-                  ? AppTheme.playerControlsDark
-                  : AppTheme.playerControlsLight,
+              color: Colors.grey,
             ),
           ),
         ),
@@ -230,9 +228,7 @@ class _SongListItem extends StatelessWidget {
         nullArtworkWidget: Icon(
           Iconsax.music,
           size: 50,
-          color: isDarkMode
-              ? AppTheme.playerControlsDark
-              : AppTheme.playerControlsLight,
+          color: Colors.grey,
         ),
       ),
       title: Text(

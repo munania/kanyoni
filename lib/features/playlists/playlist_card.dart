@@ -51,9 +51,7 @@ class PlaylistCard extends StatelessWidget {
                 child: Icon(
                   Iconsax.music_playlist,
                   size: 30,
-                  color: isDarkMode
-                      ? AppTheme.playerControlsDark
-                      : AppTheme.playerControlsLight,
+                  color: Colors.grey,
                 ),
               ),
               const SizedBox(width: 16),

@@ -105,9 +105,7 @@ class _PlaylistDetailsViewState extends State<PlaylistDetailsView>
             child: Icon(
               Iconsax.user,
               size: 100,
-              color: isDarkMode
-                  ? AppTheme.playerControlsDark
-                  : AppTheme.playerControlsLight,
+              color: Colors.grey,
             ),
           ),
         ),
@@ -184,20 +182,20 @@ class _PlaylistDetailsViewState extends State<PlaylistDetailsView>
                 Icon(
                   Iconsax.music,
                   size: 72,
-                  color: isDarkMode ? Colors.white38 : Colors.black38,
+                  color: Colors.grey,
                 ),
                 const SizedBox(height: 16),
                 Text(
                   'No Songs',
                   style: AppTheme.headlineMedium.copyWith(
-                    color: isDarkMode ? Colors.white38 : Colors.black38,
+                    color: Colors.grey,
                   ),
                 ),
                 const SizedBox(height: 8),
                 Text(
                   'Add songs to this playlist',
                   style: AppTheme.bodyMedium.copyWith(
-                    color: isDarkMode ? Colors.white38 : Colors.black38,
+                    color: Colors.grey,
                   ),
                 ),
               ],

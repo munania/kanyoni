@@ -104,9 +104,7 @@ class _AlbumDetailsViewState extends State<AlbumDetailsView>
             child: Icon(
               Iconsax.music_square,
               size: 100,
-              color: isDarkMode
-                  ? AppTheme.playerControlsDark
-                  : AppTheme.playerControlsLight,
+              color: Colors.grey,
             ),
           ),
         ),
@@ -226,9 +224,7 @@ class _SongListItem extends StatelessWidget {
         nullArtworkWidget: Icon(
           size: 50,
           Iconsax.music,
-          color: isDarkMode
-              ? AppTheme.playerControlsDark
-              : AppTheme.playerControlsLight,
+          color: Colors.grey,
         ),
       ),
       title: Text(

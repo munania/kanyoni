@@ -26,8 +26,9 @@ class _GenreDetailsViewState extends State<GenreDetailsView>
   late final GenreController _genreController;
   late final PlayerController _playerController;
   final _panelController = PanelController();
-  late List<SongModel> _genreSongs;
   final _scrollController = ScrollController();
+  final double _itemExtent = 80.0;
+  late List<SongModel> _genreSongs;
   bool _isLoading = true;
 
   @override
@@ -42,10 +43,11 @@ class _GenreDetailsViewState extends State<GenreDetailsView>
   }
 
   Future<void> _loadSongs() async {
-    await Future.microtask(() {
-      _genreSongs = _genreController.getGenreSongs(widget.genre.id);
-    });
-    setState(() => _isLoading = false);
+    try {
+      _genreSongs = await _genreController.getGenreSongs(widget.genre.id);
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   @override
@@ -61,21 +63,17 @@ class _GenreDetailsViewState extends State<GenreDetailsView>
         borderRadius: const BorderRadius.vertical(
           top: Radius.circular(AppTheme.cornerRadius),
         ),
-        panel: NowPlayingPanel(
-          playerController: _playerController,
-          isDarkMode: isDarkMode,
-        ),
-        collapsed: CollapsedPanel(
-          panelController: _panelController,
+        panelBuilder: (scrollController) => NowPlayingPanel(
           playerController: _playerController,
           isDarkMode: isDarkMode,
         ),
         body: CustomScrollView(
           controller: _scrollController,
+          physics: const AlwaysScrollableScrollPhysics(),
           slivers: [
             _buildAppBar(isDarkMode),
             _buildHeaderSection(isDarkMode),
-            _buildSongList(isDarkMode),
+            _buildSongList(),
           ],
         ),
       ),
@@ -100,13 +98,7 @@ class _GenreDetailsViewState extends State<GenreDetailsView>
           type: ArtworkType.ARTIST,
           nullArtworkWidget: Container(
             color: isDarkMode ? Colors.grey[800] : Colors.grey[300],
-            child: Icon(
-              Iconsax.user,
-              size: 100,
-              color: isDarkMode
-                  ? AppTheme.playerControlsDark
-                  : AppTheme.playerControlsLight,
-            ),
+            child: const Icon(Iconsax.user, size: 100, color: Colors.grey),
           ),
         ),
       ),
@@ -140,28 +132,10 @@ class _GenreDetailsViewState extends State<GenreDetailsView>
                   ),
                 ),
                 const SizedBox(width: 8),
-                ElevatedButton.icon(
-                  onPressed: () =>
-                      _genreController.playGenreSongs(widget.genre.id),
-                  icon: Icon(
-                    Icons.play_arrow,
-                    color: isDarkMode
-                        ? AppTheme.nowPlayingDark
-                        : AppTheme.nowPlayingLight,
-                  ),
-                  label: Text(
-                    'Play All',
-                    style: TextStyle(
-                      color: isDarkMode
-                          ? AppTheme.nowPlayingDark
-                          : AppTheme.nowPlayingLight,
-                    ),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: isDarkMode
-                        ? AppTheme.playerControlsDark
-                        : AppTheme.playerControlsLight,
-                  ),
+                _PlayAllButton(
+                  genre: widget.genre,
+                  genreController: _genreController,
+                  isDarkMode: isDarkMode,
                 ),
               ],
             ),
@@ -171,27 +145,22 @@ class _GenreDetailsViewState extends State<GenreDetailsView>
     );
   }
 
-  Widget _buildSongList(bool isDarkMode) {
+  Widget _buildSongList() {
     if (_isLoading) {
-      return SliverFillRemaining(
-        child: Center(
-          child: CircularProgressIndicator(
-            color: isDarkMode
-                ? AppTheme.playerControlsDark
-                : AppTheme.playerControlsLight,
-          ),
-        ),
+      return const SliverFillRemaining(
+        child: Center(child: CircularProgressIndicator()),
       );
     }
 
-    return SliverList(
+    return SliverFixedExtentList(
+      itemExtent: _itemExtent,
       delegate: SliverChildBuilderDelegate(
         (context, index) => _SongListItem(
           song: _genreSongs[index],
           index: index,
-          isDarkMode: isDarkMode,
           playerController: _playerController,
-          genreSongs: _genreSongs,
+          genreController: _genreController,
+          genreId: widget.genre.id,
         ),
         childCount: _genreSongs.length,
       ),
@@ -208,57 +177,138 @@ class _GenreDetailsViewState extends State<GenreDetailsView>
 class _SongListItem extends StatelessWidget {
   final SongModel song;
   final int index;
-  final bool isDarkMode;
   final PlayerController playerController;
-  final List<SongModel> genreSongs;
+  final GenreController genreController;
+  final int genreId;
 
   const _SongListItem({
     required this.song,
     required this.index,
-    required this.isDarkMode,
     required this.playerController,
-    required this.genreSongs,
+    required this.genreController,
+    required this.genreId,
   });
 
   @override
   Widget build(BuildContext context) {
-    final isFavorite = playerController.favoriteSongs.contains(song.id);
-
-    return ListTile(
-      leading: QueryArtworkWidget(
-        id: song.id,
-        type: ArtworkType.AUDIO,
-        nullArtworkWidget: Icon(
-          size: 50,
-          Iconsax.music,
-          color: isDarkMode
-              ? AppTheme.playerControlsDark
-              : AppTheme.playerControlsLight,
+    return RepaintBoundary(
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () {
+            playerController.currentPlaylist.value =
+                genreController.getGenreSongs(genreId);
+            playerController.playSong(index);
+          },
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Row(
+              children: [
+                _ArtworkWidget(song: song),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        song.title,
+                        style: AppTheme.bodyLarge,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      Text(
+                        song.album ?? 'Unknown Album',
+                        style: AppTheme.bodyMedium,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+                _FavoriteButton(song: song, playerController: playerController),
+              ],
+            ),
+          ),
         ),
       ),
-      title: Text(
-        song.title,
-        style: AppTheme.bodyLarge,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-      ),
-      subtitle: Text(
-        song.album ?? 'Unknown Album',
-        style: AppTheme.bodyMedium,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-      ),
-      trailing: IconButton(
+    );
+  }
+}
+
+class _ArtworkWidget extends StatelessWidget {
+  final SongModel song;
+
+  const _ArtworkWidget({required this.song});
+
+  @override
+  Widget build(BuildContext context) {
+    return QueryArtworkWidget(
+      id: song.id,
+      type: ArtworkType.AUDIO,
+      size: 50,
+      keepOldArtwork: true,
+      nullArtworkWidget:
+          const Icon(Iconsax.music, size: 50, color: Colors.grey),
+    );
+  }
+}
+
+class _FavoriteButton extends StatelessWidget {
+  final SongModel song;
+  final PlayerController playerController;
+
+  const _FavoriteButton({
+    required this.song,
+    required this.playerController,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Obx(() {
+      final isFavorite = playerController.favoriteSongs.contains(song.id);
+      return IconButton(
         icon: Icon(
           isFavorite ? Icons.favorite : Icons.favorite_border,
           color: isFavorite ? AppTheme.playerControlsDark : null,
         ),
         onPressed: () => playerController.toggleFavorite(song.id),
+      );
+    });
+  }
+}
+
+class _PlayAllButton extends StatelessWidget {
+  final GenreModel genre;
+  final GenreController genreController;
+  final bool isDarkMode;
+
+  const _PlayAllButton({
+    required this.genre,
+    required this.genreController,
+    required this.isDarkMode,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ElevatedButton.icon(
+      onPressed: () => genreController.playGenreSongs(genre.id),
+      icon: Icon(
+        Icons.play_arrow,
+        color: isDarkMode ? AppTheme.nowPlayingDark : AppTheme.nowPlayingLight,
       ),
-      onTap: () {
-        playerController.currentPlaylist.value = genreSongs;
-        playerController.playSong(index);
-      },
+      label: Text(
+        'Play All',
+        style: TextStyle(
+          color:
+              isDarkMode ? AppTheme.nowPlayingDark : AppTheme.nowPlayingLight,
+        ),
+      ),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: isDarkMode
+            ? AppTheme.playerControlsDark
+            : AppTheme.playerControlsLight,
+      ),
     );
   }
 }

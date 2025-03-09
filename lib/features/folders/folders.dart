@@ -3,7 +3,6 @@ import 'package:get/get.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:path/path.dart' as path;
 
-import '../../utils/theme/theme.dart';
 import 'controllers/folder_controller.dart';
 import 'folders_details.dart';
 
@@ -42,9 +41,7 @@ class _FoldersViewState extends State<FoldersView>
             return ListTile(
               leading: Icon(
                 Iconsax.folder_25,
-                color: isDarkMode
-                    ? AppTheme.playerControlsDark
-                    : AppTheme.playerControlsLight,
+                color: Colors.grey,
                 size: 48,
               ),
               title: Text(
@@ -69,9 +66,7 @@ class _FoldersViewState extends State<FoldersView>
               },
               trailing: Icon(
                 Icons.chevron_right,
-                color: isDarkMode
-                    ? AppTheme.playerControlsDark
-                    : AppTheme.playerControlsLight,
+                color: Colors.grey,
                 size: 20,
               ),
             );

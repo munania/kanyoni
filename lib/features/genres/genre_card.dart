@@ -47,9 +47,7 @@ class GenreCard extends StatelessWidget {
                       child: Icon(
                         Iconsax.user,
                         size: 30,
-                        color: isDarkMode
-                            ? AppTheme.playerControlsDark
-                            : AppTheme.playerControlsLight,
+                        color: Colors.grey,
                       ),
                     ),
                   ),
@@ -80,9 +78,7 @@ class GenreCard extends StatelessWidget {
               ),
               Icon(
                 Icons.chevron_right,
-                color: isDarkMode
-                    ? AppTheme.playerControlsDark
-                    : AppTheme.playerControlsLight,
+                color: Colors.grey,
               ),
             ],
           ),
