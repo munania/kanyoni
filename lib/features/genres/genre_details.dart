@@ -66,6 +66,7 @@ class _GenreDetailsViewState extends State<GenreDetailsView>
           isDarkMode: isDarkMode,
         ),
         collapsed: CollapsedPanel(
+          panelController: _panelController,
           playerController: _playerController,
           isDarkMode: isDarkMode,
         ),

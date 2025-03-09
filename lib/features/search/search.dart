@@ -54,6 +54,7 @@ class _SearchViewState extends State<SearchView> {
         isDarkMode: isDarkMode,
       ),
       collapsed: CollapsedPanel(
+        panelController: panelController,
         playerController: playerController,
         isDarkMode: isDarkMode,
       ),

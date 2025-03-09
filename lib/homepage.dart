@@ -144,7 +144,7 @@ class _HomePageState extends State<HomePage>
                       children: [
                         Icon(Iconsax.info_circle),
                         SizedBox(width: 8),
-                        Text('About'),
+                        Text('About Kanyoni'),
                       ],
                     ),
                   ),

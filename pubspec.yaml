@@ -28,6 +28,7 @@ dependencies:
   audio_service: ^0.18.16
   audio_session: ^0.1.24
   scrollable_positioned_list: ^0.2.3
+  flutter_launcher_icons: ^0.14.3
 
 
 dev_dependencies:

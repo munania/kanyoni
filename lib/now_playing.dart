@@ -5,90 +5,101 @@ import 'package:iconsax/iconsax.dart';
 import 'package:kanyoni/controllers/player_controller.dart';
 import 'package:marquee/marquee.dart';
 import 'package:on_audio_query_forked/on_audio_query.dart';
+import 'package:sliding_up_panel/sliding_up_panel.dart';
 
 import '../../utils/theme/theme.dart';
 
 class CollapsedPanel extends StatelessWidget {
   final PlayerController playerController;
+  final PanelController panelController;
   final bool isDarkMode;
 
   const CollapsedPanel({
     super.key,
     required this.playerController,
     required this.isDarkMode,
+    required this.panelController,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Obx(() {
-      // Get the current values safely
-      final List<SongModel> playlist =
-          List.from(playerController.currentPlaylist);
-      final int index = playerController.currentSongIndex.value;
+    return GestureDetector(
+      onTap: () {
+        // Add safety check before opening
+        if (panelController.isAttached) {
+          panelController.open();
+        }
+      },
+      child: Obx(() {
+        // Get the current values safely
+        final List<SongModel> playlist =
+            List.from(playerController.currentPlaylist);
+        final int index = playerController.currentSongIndex.value;
 
-      // Check bounds
-      if (playlist.isEmpty || index < 0 || index >= playlist.length) {
-        return const SizedBox.shrink();
-      }
+        // Check bounds
+        if (playlist.isEmpty || index < 0 || index >= playlist.length) {
+          return const SizedBox.shrink();
+        }
 
-      final currentSong = playlist[index];
-      final backgroundColor =
-          isDarkMode ? AppTheme.nowPlayingDark : AppTheme.nowPlayingLight;
+        final currentSong = playlist[index];
+        final backgroundColor =
+            isDarkMode ? AppTheme.nowPlayingDark : AppTheme.nowPlayingLight;
 
-      return Container(
-        decoration: BoxDecoration(
-          color: backgroundColor,
-          borderRadius: const BorderRadius.vertical(
-            top: Radius.circular(AppTheme.cornerRadius),
+        return Container(
+          decoration: BoxDecoration(
+            color: backgroundColor,
+            borderRadius: const BorderRadius.vertical(
+              top: Radius.circular(AppTheme.cornerRadius),
+            ),
           ),
-        ),
-        child: Row(
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: QueryArtworkWidget(
-                id: currentSong.id,
-                type: ArtworkType.AUDIO,
-                nullArtworkWidget: Icon(
-                  Iconsax.music,
+          child: Row(
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: QueryArtworkWidget(
+                  id: currentSong.id,
+                  type: ArtworkType.AUDIO,
+                  nullArtworkWidget: Icon(
+                    Iconsax.music,
+                    size: 50,
+                    color: isDarkMode
+                        ? AppTheme.playerControlsDark
+                        : AppTheme.playerControlsLight,
+                  ),
                   size: 50,
-                  color: isDarkMode
-                      ? AppTheme.playerControlsDark
-                      : AppTheme.playerControlsLight,
                 ),
-                size: 50,
               ),
-            ),
-            Expanded(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    currentSong.title,
-                    style: AppTheme.bodyLarge
-                        .copyWith(fontWeight: FontWeight.bold),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  Text(
-                    currentSong.artist ?? 'Unknown Artist',
-                    style: AppTheme.bodyMedium,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
+              Expanded(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      currentSong.title,
+                      style: AppTheme.bodyLarge
+                          .copyWith(fontWeight: FontWeight.bold),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    Text(
+                      currentSong.artist ?? 'Unknown Artist',
+                      style: AppTheme.bodyMedium,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
               ),
-            ),
-            MediaControls(
-              playerController: playerController,
-              isDarkMode: isDarkMode,
-              isExpanded: false,
-            ),
-          ],
-        ),
-      );
-    });
+              MediaControls(
+                playerController: playerController,
+                isDarkMode: isDarkMode,
+                isExpanded: false,
+              ),
+            ],
+          ),
+        );
+      }),
+    );
   }
 }
 

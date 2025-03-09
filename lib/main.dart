@@ -1,6 +1,7 @@
 import 'package:audio_service/audio_service.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:kanyoni/controllers/base_controller.dart';
 import 'package:kanyoni/features/folders/controllers/folder_controller.dart';
 import 'package:kanyoni/utils/helpers/helper_functions.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -19,6 +20,7 @@ import 'utils/theme/theme.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await requestPermissions();
+  Get.put(BaseController());
   Get.put(PlaylistController());
   Get.put(AlbumController());
   Get.put(ArtistController());
@@ -59,20 +61,26 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GetMaterialApp(
-      title: 'Kanyoni',
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.lightTheme,
-      darkTheme: AppTheme.darkTheme,
-      themeMode: ThemeMode.system,
-      home: const AppLayout(
-        child: HomePage(),
-      ),
-    );
+    BaseController baseController = Get.find<BaseController>();
+
+    return Obx(() {
+      return GetMaterialApp(
+        title: 'Kanyoni',
+        debugShowCheckedModeBanner: false,
+        theme: AppTheme.lightTheme,
+        darkTheme: AppTheme.darkTheme,
+        themeMode: baseController.isDarkModeEnabled.value
+            ? ThemeMode.dark
+            : ThemeMode.light,
+        home: const AppLayout(
+          child: HomePage(),
+        ),
+      );
+    });
   }
 }
 
-class AppLayout extends StatelessWidget {
+class AppLayout extends StatefulWidget {
   final Widget child;
 
   const AppLayout({
@@ -81,14 +89,28 @@ class AppLayout extends StatelessWidget {
   });
 
   @override
+  State<AppLayout> createState() => _AppLayoutState();
+}
+
+class _AppLayoutState extends State<AppLayout> {
+  late final PanelController
+      panelController; // Use late final for single initialization
+
+  @override
+  void initState() {
+    super.initState();
+    panelController = PanelController(); // Initialize once in state
+  }
+
+  @override
   Widget build(BuildContext context) {
     final playerController = Get.find<PlayerController>();
-    final panelController = PanelController();
     final isDarkMode = THelperFunctions.isDarkMode(context);
 
     return Scaffold(
       body: SlidingUpPanel(
         controller: panelController,
+        // Use the state-maintained controller
         minHeight: 70,
         maxHeight: MediaQuery.of(context).size.height,
         borderRadius: const BorderRadius.vertical(
@@ -101,8 +123,9 @@ class AppLayout extends StatelessWidget {
         collapsed: CollapsedPanel(
           playerController: playerController,
           isDarkMode: isDarkMode,
+          panelController: panelController,
         ),
-        body: child,
+        body: widget.child,
       ),
     );
   }

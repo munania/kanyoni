@@ -67,6 +67,7 @@ class _AlbumDetailsViewState extends State<AlbumDetailsView>
           isDarkMode: isDarkMode,
         ),
         collapsed: CollapsedPanel(
+          panelController: _panelController,
           playerController: _playerController,
           isDarkMode: isDarkMode,
         ),

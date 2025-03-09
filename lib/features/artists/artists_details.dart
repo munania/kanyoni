@@ -67,6 +67,7 @@ class _ArtistsDetailsViewState extends State<ArtistsDetailsView>
           isDarkMode: isDarkMode,
         ),
         collapsed: CollapsedPanel(
+          panelController: _panelController,
           playerController: _playerController,
           isDarkMode: isDarkMode,
         ),

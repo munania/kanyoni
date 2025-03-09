@@ -84,31 +84,35 @@ class _TrackListItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListTile(
-      leading: QueryArtworkWidget(
-        id: song.id,
-        type: ArtworkType.AUDIO,
-        nullArtworkWidget: Icon(
-          Iconsax.music,
+    return RepaintBoundary(
+      child: ListTile(
+        leading: QueryArtworkWidget(
+          id: song.id,
+          type: ArtworkType.AUDIO,
+          keepOldArtwork: true,
           size: 50,
-          color: isDarkMode
-              ? AppTheme.playerControlsDark
-              : AppTheme.playerControlsLight,
+          nullArtworkWidget: Icon(
+            Iconsax.music,
+            size: 50,
+            color: isDarkMode
+                ? AppTheme.playerControlsDark
+                : AppTheme.playerControlsLight,
+          ),
         ),
+        title: Text(
+          song.title,
+          style: AppTheme.bodyLarge,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        subtitle: Text(
+          song.artist ?? 'Unknown Artist',
+          style: AppTheme.bodyMedium,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        onTap: () => playerController.playSong(song),
       ),
-      title: Text(
-        song.title,
-        style: AppTheme.bodyLarge,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-      ),
-      subtitle: Text(
-        song.artist ?? 'Unknown Artist',
-        style: AppTheme.bodyMedium,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-      ),
-      onTap: () => playerController.playSong(song),
     );
   }
 }

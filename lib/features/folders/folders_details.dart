@@ -74,6 +74,7 @@ class _FolderDetailsViewState extends State<FolderDetailsView>
           isDarkMode: isDarkMode,
         ),
         collapsed: CollapsedPanel(
+          panelController: _panelController,
           playerController: _playerController,
           isDarkMode: isDarkMode,
         ),
