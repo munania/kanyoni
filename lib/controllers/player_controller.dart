@@ -200,6 +200,7 @@ class PlayerController extends BaseController {
         sortType: SongSortType.DATE_ADDED,
         orderType: OrderType.DESC_OR_GREATER,
         uriType: UriType.EXTERNAL,
+        ignoreCase: true,
       );
       if (kDebugMode) {
         print('Total songs loaded: ${songs.length}');
