@@ -61,6 +61,7 @@ class _SearchViewState extends State<SearchView> {
       body: Scaffold(
         appBar: AppBar(
           title: TextField(
+            autofocus: true, // Added autofocus
             controller: _searchController,
             onChanged: _filterSongs,
             decoration: const InputDecoration(

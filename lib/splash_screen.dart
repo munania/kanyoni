@@ -49,14 +49,7 @@ class _SplashScreenPageState extends State<SplashScreenPage> {
   Widget build(BuildContext context) {
     return const Scaffold(
       body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            CircularProgressIndicator(), // Or your app logo
-            SizedBox(height: 20),
-            Text('Loading Music...'),
-          ],
-        ),
+        child: Icon(Icons.music_note, size: 100.0), // Replaced Column with Icon
       ),
     );
   }
