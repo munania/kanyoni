@@ -42,67 +42,69 @@ class _SearchViewState extends State<SearchView> {
   Widget build(BuildContext context) {
     final isDarkMode = THelperFunctions.isDarkMode(context);
 
-    return SlidingUpPanel(
-      controller: panelController,
-      minHeight: 70,
-      maxHeight: MediaQuery.of(context).size.height,
-      borderRadius: const BorderRadius.vertical(
-        top: Radius.circular(AppTheme.cornerRadius),
-      ),
-      panel: NowPlayingPanel(
-        playerController: playerController,
-        isDarkMode: isDarkMode,
-      ),
-      collapsed: CollapsedPanel(
-        panelController: panelController,
-        playerController: playerController,
-        isDarkMode: isDarkMode,
-      ),
-      body: Scaffold(
-        appBar: AppBar(
-          title: TextField(
-            autofocus: true, // Added autofocus
-            controller: _searchController,
-            onChanged: _filterSongs,
-            decoration: const InputDecoration(
-              hintText: 'Search songs...',
-              border: InputBorder.none,
-              prefixIcon: Icon(Iconsax.search_normal),
+    return Scaffold(
+      body: SlidingUpPanel(
+        controller: panelController,
+        minHeight: 70,
+        maxHeight: MediaQuery.of(context).size.height,
+        borderRadius: const BorderRadius.vertical(
+          top: Radius.circular(AppTheme.cornerRadius),
+        ),
+        panel: NowPlayingPanel(
+          playerController: playerController,
+          isDarkMode: isDarkMode,
+        ),
+        collapsed: CollapsedPanel(
+          panelController: panelController,
+          playerController: playerController,
+          isDarkMode: isDarkMode,
+        ),
+        body: Scaffold(
+          appBar: AppBar(
+            title: TextField(
+              autofocus: true, // Added autofocus
+              controller: _searchController,
+              onChanged: _filterSongs,
+              decoration: const InputDecoration(
+                hintText: 'Search songs...',
+                border: InputBorder.none,
+                prefixIcon: Icon(Iconsax.search_normal),
+              ),
             ),
           ),
-        ),
-        body: Obx(
-          () => ListView.builder(
-            itemCount: _filteredSongs.length,
-            itemBuilder: (context, index) {
-              final song = _filteredSongs[index];
-              return ListTile(
-                leading: QueryArtworkWidget(
-                  id: song.id,
-                  type: ArtworkType.AUDIO,
-                  nullArtworkWidget: Icon(
-                    Iconsax.music,
-                    size: 50,
-                    color: isDarkMode
-                        ? AppTheme.playerControlsDark
-                        : AppTheme.playerControlsLight,
+          body: Obx(
+            () => ListView.builder(
+              itemCount: _filteredSongs.length,
+              itemBuilder: (context, index) {
+                final song = _filteredSongs[index];
+                return ListTile(
+                  leading: QueryArtworkWidget(
+                    id: song.id,
+                    type: ArtworkType.AUDIO,
+                    nullArtworkWidget: Icon(
+                      Iconsax.music,
+                      size: 50,
+                      color: isDarkMode
+                          ? AppTheme.playerControlsDark
+                          : AppTheme.playerControlsLight,
+                    ),
                   ),
-                ),
-                title: Text(
-                  song.title,
-                  style: AppTheme.bodyLarge,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                subtitle: Text(
-                  song.artist ?? 'Unknown Artist',
-                  style: AppTheme.bodyMedium,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                onTap: () => playerController.playSong(song),
-              );
-            },
+                  title: Text(
+                    song.title,
+                    style: AppTheme.bodyLarge,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  subtitle: Text(
+                    song.artist ?? 'Unknown Artist',
+                    style: AppTheme.bodyMedium,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  onTap: () => playerController.playSong(song),
+                );
+              },
+            ),
           ),
         ),
       ),
