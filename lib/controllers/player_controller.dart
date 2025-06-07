@@ -3,9 +3,9 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:just_audio/just_audio.dart';
+import 'package:kanyoni/utils/services/shared_prefs_service.dart';
 import 'package:on_audio_query_forked/on_audio_query.dart';
 import 'package:rxdart/rxdart.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import 'base_controller.dart';
 
@@ -22,7 +22,6 @@ class PlayerController extends BaseController {
   static const String kLastAppCloseTimeKey = 'last_app_close_time';
   static const Duration kScrollPositionRestoreThreshold = Duration(minutes: 30);
 
-  late SharedPreferences _prefs;
   var currentSongIndex = 0.obs;
   var isPlaying = false.obs;
   var isShuffle = false.obs;
@@ -31,23 +30,27 @@ class PlayerController extends BaseController {
   var currentPlaylist = <SongModel>[].obs;
   var volume = 1.0.obs;
   var listScrollOffset = 0.0.obs; // For tracking list scroll position
-  int? get lastAppCloseTime => _prefs.getInt(kLastAppCloseTimeKey);
+  Future<int?> get lastAppCloseTime async => (await prefs).getInt(kLastAppCloseTimeKey);
   List<SongModel>? originalPlaylist;
   DateTime? _lastSaveTime;
   Timer? _scrollDebounceTimer;
+
+  bool _isSongQueryInProgress = false;
+  bool _songsLoadedSuccessfully = false;
+  bool _shouldAttemptRestoreLastSong = false;
 
   @override
   void onInit() {
     super.onInit();
     _initializePreferences();
     _initializeAudioPlayer();
-    loadSongs();
+    // fetchAllSongs(); // Removed call from here
   }
 
   Future<void> _initializePreferences() async {
     try {
-      _prefs = await SharedPreferences.getInstance();
-      _restoreState();
+      // _prefs = await SharedPreferences.getInstance(); // Removed
+      await _restoreState(); // Ensure _restoreState is awaited
     } catch (e) {
       if (kDebugMode) {
         print('Error initializing preferences: $e');
@@ -58,36 +61,41 @@ class PlayerController extends BaseController {
   Future<void> _restoreState() async {
     try {
       // Restore last save time
-      final lastSaveTimeMillis = _prefs.getInt(kLastSaveTimeKey);
+      final prefsInstance = await prefs; // Get instance once
+      final lastSaveTimeMillis = prefsInstance.getInt(kLastSaveTimeKey);
       if (lastSaveTimeMillis != null) {
         _lastSaveTime = DateTime.fromMillisecondsSinceEpoch(lastSaveTimeMillis);
-
-        // Check if we're within the restore threshold
-        if (DateTime.now().difference(_lastSaveTime!) > kMaxRestoreThreshold) {
+        if (DateTime.now().difference(_lastSaveTime!) <= kMaxRestoreThreshold) {
+          _shouldAttemptRestoreLastSong = true; // Set flag if within threshold
+        } else {
           if (kDebugMode) {
-            print('Last save time exceeded threshold, skipping state restore');
+            print('Last save time exceeded threshold, skipping state restore for last song.');
           }
-          return;
+          _shouldAttemptRestoreLastSong = false;
         }
+      } else {
+        _shouldAttemptRestoreLastSong = false; // No last save time, so don't attempt restore
       }
 
       // Restore playback settings
-      volume.value = _prefs.getDouble(kLastVolumeKey) ?? 1.0;
+      volume.value = prefsInstance.getDouble(kLastVolumeKey) ?? 1.0;
       audioPlayer.setVolume(volume.value);
 
-      isShuffle.value = _prefs.getBool(kShuffleModeKey) ?? false;
+      isShuffle.value = prefsInstance.getBool(kShuffleModeKey) ?? false;
       audioPlayer.setShuffleModeEnabled(isShuffle.value);
 
-      final savedRepeatMode = _prefs.getInt(kRepeatModeKey) ?? 0;
+      final savedRepeatMode = prefsInstance.getInt(kRepeatModeKey) ?? 0;
       repeatMode.value = RepeatMode.values[savedRepeatMode];
       audioPlayer.setLoopMode(_getLoopMode(repeatMode.value));
 
       // Restore scroll position
-      listScrollOffset.value = _prefs.getDouble(kLastListPositionKey) ?? 0.0;
+      listScrollOffset.value = prefsInstance.getDouble(kLastListPositionKey) ?? 0.0;
 
-      // Restore last song and position after songs are loaded
-      await loadSongs();
-      await _restoreLastSong();
+      // Last song restoration is now handled by fetchAllSongs
+      // if (songs.isEmpty) { // Check if songs are not loaded
+      // await fetchAllSongs(); // Call fetchAllSongs if songs are not loaded
+      // }
+      // await _restoreLastSong();
     } catch (e) {
       if (kDebugMode) {
         print('Error restoring state: $e');
@@ -96,11 +104,18 @@ class PlayerController extends BaseController {
   }
 
   Future<void> _restoreLastSong() async {
+    if (songs.isEmpty) { // Safeguard
+      if (kDebugMode) {
+        print("_restoreLastSong called but songs list is empty.");
+      }
+      return;
+    }
     try {
-      final lastSongId = _prefs.getInt(kLastSongIdKey);
-      final lastPosition = _prefs.getInt(kLastPositionKey);
+      final prefsInstance = await prefs; // Get instance once
+      final lastSongId = prefsInstance.getInt(kLastSongIdKey);
+      final lastPosition = prefsInstance.getInt(kLastPositionKey);
 
-      if (lastSongId != null && songs.isNotEmpty) {
+      if (lastSongId != null) { // songs.isNotEmpty is already checked
         final songIndex = songs.indexWhere((song) => song.id == lastSongId);
         if (songIndex != -1) {
           // First set up the song without playing
@@ -132,16 +147,17 @@ class PlayerController extends BaseController {
 
       final currentSong = currentPlaylist[currentSongIndex.value];
       final position = audioPlayer.position.inSeconds;
+      final prefsInstance = await prefs; // Get instance once
 
-      await _prefs.setInt(kLastSongIdKey, currentSong.id);
-      await _prefs.setInt(kLastPositionKey, position);
-      await _prefs.setDouble(kLastListPositionKey, listScrollOffset.value);
-      await _prefs.setDouble(kLastVolumeKey, volume.value);
-      await _prefs.setBool(kShuffleModeKey, isShuffle.value);
-      await _prefs.setInt(kRepeatModeKey, repeatMode.value.index);
-      await _prefs.setInt(
+      await prefsInstance.setInt(kLastSongIdKey, currentSong.id);
+      await prefsInstance.setInt(kLastPositionKey, position);
+      await prefsInstance.setDouble(kLastListPositionKey, listScrollOffset.value);
+      await prefsInstance.setDouble(kLastVolumeKey, volume.value);
+      await prefsInstance.setBool(kShuffleModeKey, isShuffle.value);
+      await prefsInstance.setInt(kRepeatModeKey, repeatMode.value.index);
+      await prefsInstance.setInt(
           kLastSaveTimeKey, DateTime.now().millisecondsSinceEpoch);
-      await _prefs.setInt(
+      await prefsInstance.setInt(
           kLastAppCloseTimeKey, DateTime.now().millisecondsSinceEpoch);
 
       if (kDebugMode) {
@@ -161,12 +177,12 @@ class PlayerController extends BaseController {
     _debouncedSaveState();
   }
 
-  bool shouldRestoreScrollPosition() {
-    final lastCloseTime = lastAppCloseTime;
-    if (lastCloseTime == null) return false;
+  Future<bool> shouldRestoreScrollPosition() async {
+    final lastCloseTimeValue = await lastAppCloseTime;
+    if (lastCloseTimeValue == null) return false;
 
     final timeSinceClose = DateTime.now()
-        .difference(DateTime.fromMillisecondsSinceEpoch(lastCloseTime));
+        .difference(DateTime.fromMillisecondsSinceEpoch(lastCloseTimeValue));
 
     return timeSinceClose < kScrollPositionRestoreThreshold;
   }
@@ -194,7 +210,18 @@ class PlayerController extends BaseController {
     audioPlayer.setLoopMode(LoopMode.off);
   }
 
-  Future<void> loadSongs() async {
+  Future<void> fetchAllSongs() async {
+    if (_isSongQueryInProgress || _songsLoadedSuccessfully) {
+      if (kDebugMode) {
+        print(
+            'FetchAllSongs: Skipped as query in progress ($_isSongQueryInProgress) or songs already loaded ($_songsLoadedSuccessfully).');
+      }
+      return;
+    }
+
+    _isSongQueryInProgress = true;
+    _songsLoadedSuccessfully = false; // Reset before attempting
+
     try {
       songs.value = await audioQuery.querySongs(
         sortType: SongSortType.DATE_ADDED,
@@ -206,12 +233,20 @@ class PlayerController extends BaseController {
         print('Total songs loaded: ${songs.length}');
       }
       currentPlaylist.value = songs;
+      _songsLoadedSuccessfully = true;
+
+      if (_shouldAttemptRestoreLastSong) {
+        await _restoreLastSong();
+      }
     } catch (e) {
+      _songsLoadedSuccessfully = false;
       if (kDebugMode) {
         print('Error loading songs: $e');
       }
       Get.snackbar("Error", "Failed to load songs: $e",
           snackPosition: SnackPosition.BOTTOM);
+    } finally {
+      _isSongQueryInProgress = false;
     }
   }
 

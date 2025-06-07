@@ -2,9 +2,15 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:iconsax/iconsax.dart';
+import 'package:kanyoni/controllers/player_controller.dart'; // Added
 import 'package:kanyoni/features/about/about.dart';
+import 'package:kanyoni/features/albums/controller/album_controller.dart'; // Added
+import 'package:kanyoni/features/artists/controller/artists_controller.dart'; // Added
 import 'package:kanyoni/features/artists/artists.dart';
+import 'package:kanyoni/features/folders/controllers/folder_controller.dart'; // Added
 import 'package:kanyoni/features/folders/folders.dart';
+import 'package:kanyoni/features/genres/controller/genres_controller.dart'; // Added
+import 'package:kanyoni/features/playlists/controller/playlists_controller.dart'; // Added
 import 'package:kanyoni/features/playlists/playlists.dart';
 import 'package:kanyoni/utils/helpers/helper_functions.dart';
 import 'package:kanyoni/utils/theme/theme.dart';
@@ -30,6 +36,16 @@ class _HomePageState extends State<HomePage>
   void initState() {
     super.initState();
     _initializeTabController();
+    _loadInitialData();
+  }
+
+  void _loadInitialData() {
+    Get.find<PlayerController>().fetchAllSongs();
+    Get.find<PlaylistController>().fetchPlaylists();
+    Get.find<AlbumController>().fetchAlbums();
+    Get.find<ArtistController>().fetchArtists();
+    Get.find<GenreController>().fetchGenres();
+    Get.find<FolderController>().fetchFolders();
   }
 
   void _initializeTabController() {

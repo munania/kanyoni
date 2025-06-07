@@ -14,29 +14,35 @@ class GenreController extends BaseController {
   @override
   void onInit() async {
     super.onInit();
-    loadGenres();
+    // fetchGenres(); // Removed call
   }
 
-  Future<void> loadGenres() async {
+  Future<void> fetchGenres() async {
     final genreList = await audioQuery.queryGenres(
       sortType: GenreSortType.GENRE,
       orderType: OrderType.ASC_OR_SMALLER,
       uriType: UriType.EXTERNAL,
     );
     genres.value = genreList;
+    // Removed song pre-loading logic from here
+  }
 
-    final genreSongsList = await Future.wait(genreList.map((genre) {
-      return audioQuery.queryAudiosFrom(
-        AudiosFromType.GENRE_ID,
-        genre.id,
-        sortType: SongSortType.DATE_ADDED,
-        orderType: OrderType.ASC_OR_SMALLER,
-      );
-    }));
-
-    for (int i = 0; i < genreList.length; i++) {
-      genreSongs[genreList[i].id] = genreSongsList[i];
+  Future<void> ensureSongsForGenreLoaded(int genreId) async {
+    if (genreSongs[genreId] != null && genreSongs[genreId]!.isNotEmpty) {
+      return; // Already loaded
     }
+    // TODO: Consider adding isLoadingGenreSongs[genreId] = true; if UI needs it
+
+    final queriedSongs = await audioQuery.queryAudiosFrom(
+      AudiosFromType.GENRE_ID,
+      genreId,
+      sortType: SongSortType.DATE_ADDED, // Or your preferred sort order
+      orderType: OrderType.ASC_OR_SMALLER,
+    );
+    genreSongs[genreId] = queriedSongs;
+
+    // TODO: Consider adding isLoadingGenreSongs[genreId] = false;
+    genreSongs.refresh(); // Notify listeners
   }
 
   List<SongModel> getGenreSongs(int genreId) {
@@ -44,6 +50,7 @@ class GenreController extends BaseController {
   }
 
   Future<void> playGenreSongs(int genreId) async {
+    await ensureSongsForGenreLoaded(genreId); // Ensure songs are loaded
     final songs = getGenreSongs(genreId);
     if (songs.isNotEmpty) {
       playerController.currentPlaylist.value = songs;

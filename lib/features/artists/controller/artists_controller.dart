@@ -14,32 +14,39 @@ class ArtistController extends BaseController {
   @override
   void onInit() async {
     super.onInit();
-    loadArtists();
+    // fetchArtists(); // Removed call
   }
 
-  Future<void> loadArtists() async {
+  Future<void> fetchArtists() async {
     final artistsList = await audioQuery.queryArtists(
       sortType: ArtistSortType.ARTIST,
       orderType: OrderType.ASC_OR_SMALLER,
       uriType: UriType.EXTERNAL,
     );
     artists.value = artistsList;
+    // Removed song pre-loading logic from here
+  }
 
-    final artistSongsList = await Future.wait(artistsList.map((artist) {
-      return audioQuery.queryAudiosFrom(
-        AudiosFromType.ARTIST_ID,
-        artist.id,
-        sortType: SongSortType.DATE_ADDED,
-        orderType: OrderType.ASC_OR_SMALLER,
-      );
-    }));
-
-    for (int i = 0; i < artistsList.length; i++) {
-      artistSongs[artistsList[i].id] = artistSongsList[i];
+  Future<void> ensureSongsForArtistLoaded(int artistId) async {
+    if (artistSongs[artistId] != null && artistSongs[artistId]!.isNotEmpty) {
+      return; // Already loaded
     }
+    // TODO: Consider adding isLoadingArtistSongs[artistId] = true; if UI needs it
+
+    final queriedSongs = await audioQuery.queryAudiosFrom(
+      AudiosFromType.ARTIST_ID,
+      artistId,
+      sortType: SongSortType.DATE_ADDED, // Or your preferred sort order
+      orderType: OrderType.ASC_OR_SMALLER,
+    );
+    artistSongs[artistId] = queriedSongs;
+
+    // TODO: Consider adding isLoadingArtistSongs[artistId] = false;
+    artistSongs.refresh(); // Notify listeners
   }
 
   Future<void> playArtistSongs(int artistId) async {
+    await ensureSongsForArtistLoaded(artistId); // Ensure songs are loaded
     final songs = getArtistSongs(artistId);
     if (songs.isNotEmpty) {
       playerController.currentPlaylist.value = songs;
