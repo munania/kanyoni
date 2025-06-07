@@ -43,6 +43,7 @@ class _SearchViewState extends State<SearchView> {
     final isDarkMode = THelperFunctions.isDarkMode(context);
 
     return Scaffold(
+      resizeToAvoidBottomInset: false, // Important: only on the root Scaffold
       body: SlidingUpPanel(
         controller: panelController,
         minHeight: 70,
@@ -59,52 +60,58 @@ class _SearchViewState extends State<SearchView> {
           playerController: playerController,
           isDarkMode: isDarkMode,
         ),
-        body: Scaffold(
-          appBar: AppBar(
-            title: TextField(
-              autofocus: true, // Added autofocus
-              controller: _searchController,
-              onChanged: _filterSongs,
-              decoration: const InputDecoration(
-                hintText: 'Search songs...',
-                border: InputBorder.none,
-                prefixIcon: Icon(Iconsax.search_normal),
+        body: SafeArea(
+          child: Column(
+            children: [
+              AppBar(
+                title: TextField(
+                  autofocus: true,
+                  controller: _searchController,
+                  onChanged: _filterSongs,
+                  decoration: const InputDecoration(
+                    hintText: 'Search songs...',
+                    border: InputBorder.none,
+                    prefixIcon: Icon(Iconsax.search_normal),
+                  ),
+                ),
               ),
-            ),
-          ),
-          body: Obx(
-            () => ListView.builder(
-              itemCount: _filteredSongs.length,
-              itemBuilder: (context, index) {
-                final song = _filteredSongs[index];
-                return ListTile(
-                  leading: QueryArtworkWidget(
-                    id: song.id,
-                    type: ArtworkType.AUDIO,
-                    nullArtworkWidget: Icon(
-                      Iconsax.music,
-                      size: 50,
-                      color: isDarkMode
-                          ? AppTheme.playerControlsDark
-                          : AppTheme.playerControlsLight,
-                    ),
+              Expanded(
+                child: Obx(
+                  () => ListView.builder(
+                    itemCount: _filteredSongs.length,
+                    itemBuilder: (context, index) {
+                      final song = _filteredSongs[index];
+                      return ListTile(
+                        leading: QueryArtworkWidget(
+                          id: song.id,
+                          type: ArtworkType.AUDIO,
+                          nullArtworkWidget: Icon(
+                            Iconsax.music,
+                            size: 50,
+                            color: isDarkMode
+                                ? AppTheme.playerControlsDark
+                                : AppTheme.playerControlsLight,
+                          ),
+                        ),
+                        title: Text(
+                          song.title,
+                          style: AppTheme.bodyLarge,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        subtitle: Text(
+                          song.artist ?? 'Unknown Artist',
+                          style: AppTheme.bodyMedium,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        onTap: () => playerController.playSong(song),
+                      );
+                    },
                   ),
-                  title: Text(
-                    song.title,
-                    style: AppTheme.bodyLarge,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  subtitle: Text(
-                    song.artist ?? 'Unknown Artist',
-                    style: AppTheme.bodyMedium,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  onTap: () => playerController.playSong(song),
-                );
-              },
-            ),
+                ),
+              ),
+            ],
           ),
         ),
       ),
