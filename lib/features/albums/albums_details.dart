@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:iconsax/iconsax.dart';
@@ -45,7 +46,9 @@ class _AlbumDetailsViewState extends State<AlbumDetailsView>
   Future<void> _loadSongs() async {
     await _albumController.ensureSongsForAlbumLoaded(widget.album.id);
     _albumSongs = _albumController.getAlbumSongs(widget.album.id).toList();
-    print('Loaded songs: ${_albumSongs.length}');
+    if (kDebugMode) {
+      print('Loaded songs: ${_albumSongs.length}');
+    }
     setState(() => _isLoading = false);
   }
 

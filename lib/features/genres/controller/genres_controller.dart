@@ -11,12 +11,6 @@ class GenreController extends BaseController {
   final RxMap<int, List<SongModel>> genreSongs = <int, List<SongModel>>{}.obs;
   PlayerController playerController = Get.find<PlayerController>();
 
-  @override
-  void onInit() async {
-    super.onInit();
-    // fetchGenres(); // Removed call
-  }
-
   Future<void> fetchGenres() async {
     final genreList = await audioQuery.queryGenres(
       sortType: GenreSortType.GENRE,
