@@ -42,8 +42,10 @@ class _ArtistsDetailsViewState extends State<ArtistsDetailsView>
   }
 
   Future<void> _loadSongs() async {
-    await _artistController.ensureSongsForArtistLoaded(widget.artist.id);
-    _artistSongs = _artistController.getArtistSongs(widget.artist.id);
+    // Load songs in background
+    await Future.microtask(() {
+      _artistSongs = _artistController.getArtistSongs(widget.artist.id);
+    });
     setState(() => _isLoading = false);
   }
 

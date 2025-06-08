@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:iconsax/iconsax.dart';
@@ -44,11 +43,9 @@ class _AlbumDetailsViewState extends State<AlbumDetailsView>
   }
 
   Future<void> _loadSongs() async {
-    await _albumController.ensureSongsForAlbumLoaded(widget.album.id);
-    _albumSongs = _albumController.getAlbumSongs(widget.album.id).toList();
-    if (kDebugMode) {
-      print('Loaded songs: ${_albumSongs.length}');
-    }
+    await Future.microtask(() {
+      _albumSongs = _albumController.getAlbumSongs(widget.album.id).toList();
+    });
     setState(() => _isLoading = false);
   }
 
@@ -218,8 +215,6 @@ class _SongListItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    print("MY SONGS..........................");
-    print(song);
     final isFavorite = playerController.favoriteSongs.contains(song.id);
 
     return ListTile(
