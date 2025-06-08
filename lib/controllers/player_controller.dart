@@ -116,6 +116,63 @@ class PlayerController extends BaseController {
     }
   }
 
+  Future<void> refreshSongs() async {
+    if (_isSongQueryInProgress) {
+      if (kDebugMode) {
+        print('RefreshSongs: Skipped as a song query is already in progress.');
+      }
+      return;
+    }
+
+    _isSongQueryInProgress = true;
+    // _songsLoadedSuccessfully = false; // We will set this based on outcome
+
+    if (kDebugMode) {
+      print('RefreshSongs: Starting song query...');
+    }
+
+    try {
+      // --- Core song fetching logic (similar to fetchAllSongs) ---
+      final newSongs = await audioQuery.querySongs(
+        sortType: SongSortType.DATE_ADDED,
+        orderType: OrderType.DESC_OR_GREATER,
+        uriType: UriType.EXTERNAL,
+        ignoreCase: true,
+      );
+
+      if (kDebugMode) {
+        print('RefreshSongs: Total songs loaded: ${newSongs.length}');
+      }
+
+      // Update the main songs list and currentPlaylist
+      // Make sure to update songs.value which is observed by TracksView
+      songs.value = newSongs;
+      currentPlaylist.value = newSongs; // Or however currentPlaylist should be updated after a refresh
+
+      _songsLoadedSuccessfully = true;
+      if (kDebugMode) {
+        print('Songs refreshed successfully.');
+      }
+
+      // Optional: If you want to re-apply the last song state after a refresh
+      // if (_shouldAttemptRestoreLastSong) {
+      //   await _restoreLastSong();
+      // }
+      // However, this might be unexpected during a manual refresh.
+      // For now, let's keep it simple and not restore the last song automatically on manual refresh.
+
+    } catch (e) {
+      _songsLoadedSuccessfully = false; // Explicitly set on error
+      if (kDebugMode) {
+        print('Error during refreshSongs: $e');
+      }
+      Get.snackbar("Error", "Failed to refresh songs: $e",
+          snackPosition: SnackPosition.BOTTOM);
+    } finally {
+      _isSongQueryInProgress = false;
+    }
+  }
+
   Future<void> _restoreLastSong() async {
     if (songs.isEmpty) {
       // Safeguard
