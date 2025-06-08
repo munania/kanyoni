@@ -37,6 +37,7 @@ class _PlaylistDetailsViewState extends State<PlaylistDetailsView>
     super.initState();
     _playlistController = Get.find<PlaylistController>();
     _playerController = Get.find<PlayerController>();
+    _playlistController.ensureSongsForPlaylistLoaded(widget.playlist.id);
   }
 
   @override
@@ -233,53 +234,10 @@ class _PlaylistDetailsViewState extends State<PlaylistDetailsView>
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Add Songs'),
-        content: SizedBox(
-          width: double.maxFinite,
-          height: MediaQuery.of(context).size.height * 0.6,
-          child: Obx(() {
-            final songs = _playerController.songs;
-            final playlistSongs =
-                _playlistController.getPlaylistSongs(widget.playlist.id);
-
-            return ListView.builder(
-              itemCount: songs.length,
-              itemBuilder: (context, index) {
-                final song = songs[index];
-                final isInPlaylist = playlistSongs.any((s) =>
-                    s.title == song.title &&
-                    s.artist == song.artist &&
-                    s.duration == song.duration &&
-                    s.data == song.data);
-
-                return CheckboxListTile(
-                  title: Text(
-                    song.title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  subtitle: Text(
-                    song.artist ?? 'Unknown Artist',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  value: isInPlaylist,
-                  onChanged: (value) async {
-                    if (value ?? false) {
-                      await _playlistController.addToPlaylist(
-                        widget.playlist.id,
-                        song.id,
-                      );
-                    } else {
-                      await _playlistController.removeFromPlaylist(
-                        widget.playlist.id,
-                        song.id,
-                      );
-                    }
-                  },
-                );
-              },
-            );
-          }),
+        content: AddToPlaylistDialogContent(
+          playerController: _playerController,
+          playlistController: _playlistController,
+          playlistId: widget.playlist.id,
         ),
         actions: [
           TextButton(
@@ -295,5 +253,135 @@ class _PlaylistDetailsViewState extends State<PlaylistDetailsView>
   void dispose() {
     _scrollController.dispose();
     super.dispose();
+  }
+}
+
+class AddToPlaylistDialogContent extends StatefulWidget {
+  final PlayerController playerController;
+  final PlaylistController playlistController;
+  final int playlistId;
+
+  const AddToPlaylistDialogContent({
+    super.key,
+    required this.playerController,
+    required this.playlistController,
+    required this.playlistId,
+  });
+
+  @override
+  State<AddToPlaylistDialogContent> createState() =>
+      _AddToPlaylistDialogContentState();
+}
+
+class _AddToPlaylistDialogContentState
+    extends State<AddToPlaylistDialogContent> {
+  final _searchController = TextEditingController();
+  String _searchQuery = '';
+  List<SongModel> _filteredSongs = [];
+
+  @override
+  void initState() {
+    super.initState();
+    // Initialize filtered songs with all songs
+    _filteredSongs = widget.playerController.songs;
+    _searchController.addListener(() {
+      setState(() {
+        _searchQuery = _searchController.text;
+        _filterSongs();
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _filterSongs() {
+    if (_searchQuery.isEmpty) {
+      setState(() {
+        _filteredSongs = widget.playerController.songs;
+      });
+    } else {
+      setState(() {
+        _filteredSongs = widget.playerController.songs
+            .where((song) =>
+                song.title.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+                (song.artist?.toLowerCase() ?? '')
+                    .contains(_searchQuery.toLowerCase()))
+            .toList();
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.maxFinite,
+      height: MediaQuery.of(context).size.height * 0.6,
+      child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: TextField(
+              controller: _searchController,
+              decoration: InputDecoration(
+                hintText: 'Search songs...',
+                prefixIcon: const Icon(Iconsax.search_normal),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(AppTheme.cornerRadius),
+                ),
+              ),
+            ),
+          ),
+          Expanded(
+            child: Obx(() {
+              final playlistSongs =
+                  widget.playlistController.getPlaylistSongs(widget.playlistId);
+
+              return ListView.builder(
+                itemCount: _filteredSongs.length,
+                itemBuilder: (context, index) {
+                  final song = _filteredSongs[index];
+                  final isInPlaylist = playlistSongs.any((s) =>
+                      s.title == song.title &&
+                      s.artist == song.artist &&
+                      s.duration == song.duration &&
+                      s.data == song.data);
+
+                  return CheckboxListTile(
+                    title: Text(
+                      song.title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    subtitle: Text(
+                      song.artist ?? 'Unknown Artist',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    value: isInPlaylist,
+                    onChanged: (value) async {
+                      if (value ?? false) {
+                        await widget.playlistController.addToPlaylist(
+                          widget.playlistId,
+                          song.id,
+                        );
+                      } else {
+                        await widget.playlistController.removeFromPlaylist(
+                          widget.playlistId,
+                          song.id,
+                        );
+                      }
+                    },
+                  );
+                },
+              );
+            }),
+          ),
+        ],
+      ),
+    );
   }
 }

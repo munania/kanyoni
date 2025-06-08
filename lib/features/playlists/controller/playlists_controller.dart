@@ -15,7 +15,7 @@ class PlaylistController extends BaseController {
   @override
   void onInit() {
     super.onInit();
-    // fetchPlaylists(); // Removed call
+    fetchPlaylists(); // Removed call
   }
 
   Future<void> fetchPlaylists() async {
@@ -32,6 +32,9 @@ class PlaylistController extends BaseController {
           .toList();
 
       playlists.value = appPlaylists;
+      for (var playlist in appPlaylists) {
+        await ensureSongsForPlaylistLoaded(playlist.id);
+      }
       // await _cachePlaylistSongs(appPlaylists); // Removed direct caching of all playlist songs
     } catch (e) {
       _handleError('Loading playlists', e);
@@ -60,7 +63,8 @@ class PlaylistController extends BaseController {
           .then((value) => value.cast<SongModel>());
 
       _playlistSongsCache[playlistId] = songs;
-      _playlistSongsCache.refresh(); // Notify if UI is observing this map directly
+      _playlistSongsCache
+          .refresh(); // Notify if UI is observing this map directly
     } catch (e) {
       _handleError('Loading songs for playlist $playlistId', e);
     }
@@ -112,7 +116,8 @@ class PlaylistController extends BaseController {
   }
 
   Future<bool> addToPlaylist(int playlistId, int systemSongId) async {
-    await ensureSongsForPlaylistLoaded(playlistId); // Ensure songs are loaded/cached first
+    await ensureSongsForPlaylistLoaded(
+        playlistId); // Ensure songs are loaded/cached first
     try {
       final systemSong = _playerController.songs.firstWhere(
         (s) => s.id == systemSongId,
@@ -126,7 +131,7 @@ class PlaylistController extends BaseController {
       final idToAdd = _findSystemSongId(systemSong) ?? systemSongId;
 
       if (existingIds.contains(idToAdd)) {
-         if (kDebugMode) print('Song already in playlist.');
+        if (kDebugMode) print('Song already in playlist.');
         return true; // Already in playlist
       }
 
@@ -134,7 +139,8 @@ class PlaylistController extends BaseController {
 
       if (result) {
         // Add to local cache
-        final updatedSongs = List<SongModel>.from(existingSongModels)..add(systemSong);
+        final updatedSongs = List<SongModel>.from(existingSongModels)
+          ..add(systemSong);
         _playlistSongsCache[playlistId] = updatedSongs;
         _playlistSongsCache.refresh();
         return true;
@@ -147,13 +153,15 @@ class PlaylistController extends BaseController {
   }
 
   Future<void> removeFromPlaylist(int playlistId, int songId) async {
-    await ensureSongsForPlaylistLoaded(playlistId); // Ensure songs are loaded/cached first
+    await ensureSongsForPlaylistLoaded(
+        playlistId); // Ensure songs are loaded/cached first
     try {
       final result = await audioQuery.removeFromPlaylist(playlistId, songId);
       if (_isOperationSuccessful(result)) {
         final currentSongs = _playlistSongsCache[playlistId];
         if (currentSongs != null) {
-          final updatedSongs = currentSongs.where((s) => s.id != songId).toList();
+          final updatedSongs =
+              currentSongs.where((s) => s.id != songId).toList();
           _playlistSongsCache[playlistId] = updatedSongs;
           _playlistSongsCache.refresh();
         }

@@ -11,12 +11,6 @@ class AlbumController extends BaseController {
   final RxMap<int, List<SongModel>> albumSongs = <int, List<SongModel>>{}.obs;
   PlayerController playerController = Get.find<PlayerController>();
 
-  @override
-  void onInit() async {
-    super.onInit();
-    // fetchAlbums(); // Removed call
-  }
-
   Future<void> fetchAlbums() async {
     final albumsList = await audioQuery.queryAlbums(
       sortType: AlbumSortType.ALBUM,
@@ -42,11 +36,13 @@ class AlbumController extends BaseController {
     albumSongs[albumId] = queriedSongs;
 
     // TODO: Consider adding isLoadingAlbumSongs[albumId] = false;
-    albumSongs.refresh(); // Notify listeners if using Obx for the map directly or specific keys
+    albumSongs
+        .refresh(); // Notify listeners if using Obx for the map directly or specific keys
   }
 
   Future<void> playAlbumSongs(int albumId) async {
-    await ensureSongsForAlbumLoaded(albumId); // Ensure songs are loaded before playing
+    await ensureSongsForAlbumLoaded(
+        albumId); // Ensure songs are loaded before playing
     final songs = getAlbumSongs(albumId);
     if (songs.isNotEmpty) {
       playerController.currentPlaylist.value = songs;
