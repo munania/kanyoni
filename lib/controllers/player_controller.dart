@@ -18,6 +18,7 @@ class PlayerController extends BaseController {
   static const String kShuffleModeKey = 'shuffle_mode';
   static const String kRepeatModeKey = 'repeat_mode';
   static const String kLastSaveTimeKey = 'last_save_time';
+  static const String kFavoriteSongsKey = 'favoriteSongs'; // Added key
   static const Duration kMaxRestoreThreshold = Duration(hours: 24);
   static const String kLastAppCloseTimeKey = 'last_app_close_time';
   static const Duration kScrollPositionRestoreThreshold = Duration(minutes: 30);
@@ -91,6 +92,12 @@ class PlayerController extends BaseController {
       // Restore scroll position
       listScrollOffset.value = prefsInstance.getDouble(kLastListPositionKey) ?? 0.0;
 
+      // Load favorite songs
+      final favoriteSongIdsAsStrings = prefsInstance.getStringList(kFavoriteSongsKey);
+      if (favoriteSongIdsAsStrings != null) {
+        favoriteSongs.value = favoriteSongIdsAsStrings.map((id) => int.parse(id)).toList();
+      }
+
       // Last song restoration is now handled by fetchAllSongs
       // if (songs.isEmpty) { // Check if songs are not loaded
       // await fetchAllSongs(); // Call fetchAllSongs if songs are not loaded
@@ -104,19 +111,23 @@ class PlayerController extends BaseController {
   }
 
   Future<void> _restoreLastSong() async {
+    print('[PlayerController._restoreLastSong] Called.');
     if (songs.isEmpty) { // Safeguard
       if (kDebugMode) {
-        print("_restoreLastSong called but songs list is empty.");
+        print("[PlayerController._restoreLastSong] Songs list is empty. Cannot restore.");
       }
+      print('[PlayerController._restoreLastSong] Songs list is empty. Cannot restore.');
       return;
     }
     try {
       final prefsInstance = await prefs; // Get instance once
       final lastSongId = prefsInstance.getInt(kLastSongIdKey);
       final lastPosition = prefsInstance.getInt(kLastPositionKey);
+      print('[PlayerController._restoreLastSong] lastSongId: $lastSongId, lastPosition: $lastPosition');
 
       if (lastSongId != null) { // songs.isNotEmpty is already checked
         final songIndex = songs.indexWhere((song) => song.id == lastSongId);
+        print('[PlayerController._restoreLastSong] Found songIndex: $songIndex for lastSongId: $lastSongId');
         if (songIndex != -1) {
           // First set up the song without playing
           currentSongIndex.value = songIndex;
@@ -125,16 +136,22 @@ class PlayerController extends BaseController {
           // Then seek to the last position
           if (lastPosition != null) {
             await audioPlayer.seek(Duration(seconds: lastPosition));
+            print('[PlayerController._restoreLastSong] Seeked to $lastPosition seconds for songId: $lastSongId.');
           }
 
           // Ensure player is paused
           await audioPlayer.pause();
+        } else {
+          print('[PlayerController._restoreLastSong] Song with ID $lastSongId not found in current songs list.');
         }
+      } else {
+        print('[PlayerController._restoreLastSong] No lastSongId found in SharedPreferences.');
       }
     } catch (e) {
       if (kDebugMode) {
         print('Error restoring last song: $e');
       }
+      print('[PlayerController._restoreLastSong] Error restoring last song: $e');
     }
   }
 
@@ -232,7 +249,9 @@ class PlayerController extends BaseController {
       if (kDebugMode) {
         print('Total songs loaded: ${songs.length}');
       }
+      print('[PlayerController.fetchAllSongs] Fetched ${songs.length} songs.');
       currentPlaylist.value = songs;
+      print('[PlayerController.fetchAllSongs] currentPlaylist set to length: ${currentPlaylist.length}');
       _songsLoadedSuccessfully = true;
 
       if (_shouldAttemptRestoreLastSong) {
@@ -251,6 +270,7 @@ class PlayerController extends BaseController {
   }
 
   Future<void> playSong(dynamic input) async {
+    print('[PlayerController.playSong] Input: $input, currentPlaylist length: ${currentPlaylist.length}, currentIndex: ${currentSongIndex.value}');
     try {
       int index;
       SongModel songToPlay;
@@ -274,11 +294,13 @@ class PlayerController extends BaseController {
         if (index >= 0 && index < playlist.length) {
           songToPlay = playlist[index];
         } else {
+          print('[PlayerController.playSong] Error: Invalid song index $index for playlist length ${playlist.length}');
           Get.snackbar('Error', 'Invalid song index',
               snackPosition: SnackPosition.BOTTOM);
           return;
         }
       } else {
+        print('[PlayerController.playSong] Error: Invalid input type for playSong - ${input.runtimeType}');
         Get.snackbar('Error', 'Invalid input type for playSong',
             snackPosition: SnackPosition.BOTTOM);
         return;
@@ -291,11 +313,14 @@ class PlayerController extends BaseController {
       try {
         await audioPlayer.setFilePath(songToPlay.data);
         await audioPlayer.play();
+        print('[PlayerController.playSong] END - playing: ${songToPlay.title}, new playlist length: ${currentPlaylist.length}, new currentIndex: ${currentSongIndex.value}');
       } catch (e) {
+        print('[PlayerController.playSong] Error playing song: $e');
         Get.snackbar('Error', 'Error playing song: $e',
             snackPosition: SnackPosition.BOTTOM);
       }
     } catch (e) {
+      print('[PlayerController.playSong] PlaySong general error: $e');
       Get.snackbar('Error', 'PlaySong error: $e',
           snackPosition: SnackPosition.BOTTOM);
     }
@@ -327,16 +352,71 @@ class PlayerController extends BaseController {
 
   void toggleShuffle() {
     isShuffle.value = !isShuffle.value;
-    audioPlayer.setShuffleModeEnabled(isShuffle.value);
+
+    if (currentPlaylist.isEmpty) {
+      audioPlayer.setShuffleModeEnabled(isShuffle.value);
+      originalPlaylist = null; // Ensure original is cleared if playlist is empty
+      return; // Nothing to shuffle or restore
+    }
+
+    SongModel? currentSong;
+    if (currentSongIndex.value >= 0 && currentSongIndex.value < currentPlaylist.length) {
+      currentSong = currentPlaylist[currentSongIndex.value];
+    }
 
     if (isShuffle.value) {
-      originalPlaylist = List.from(currentPlaylist);
-      var shuffledList = List<SongModel>.from(currentPlaylist);
-      shuffledList.shuffle();
-      currentPlaylist.value = shuffledList;
-    } else if (originalPlaylist != null) {
-      currentPlaylist.value = List<SongModel>.from(originalPlaylist!);
-      originalPlaylist = null;
+      // Turning shuffle ON
+      if (originalPlaylist == null) { // Only backup if not already backed up
+        originalPlaylist = List<SongModel>.from(currentPlaylist);
+      }
+
+      var tempList = List<SongModel>.from(currentPlaylist);
+
+      if (currentSong != null) {
+        tempList.removeWhere((song) => song.id == currentSong!.id); // Remove current song by ID
+      }
+
+      tempList.shuffle();
+
+      if (currentSong != null) {
+        tempList.insert(0, currentSong); // Insert current song at the beginning
+      }
+
+      currentPlaylist.value = tempList;
+
+      if (currentSong != null && currentPlaylist.isNotEmpty) {
+        currentSongIndex.value = 0; // Current song is now at index 0
+      } else if (currentPlaylist.isNotEmpty) {
+        currentSongIndex.value = 0; // No current song, but list is not empty, point to first
+      } else {
+        currentSongIndex.value = -1; // Playlist became empty
+      }
+      audioPlayer.setShuffleModeEnabled(true);
+
+    } else {
+      // Turning shuffle OFF
+      if (originalPlaylist != null) {
+        currentPlaylist.value = List<SongModel>.from(originalPlaylist!);
+        originalPlaylist = null; // Clear the backup
+
+        if (currentSong != null) {
+          final newIndex = currentPlaylist.indexWhere((song) => song.id == currentSong!.id);
+          if (newIndex != -1) {
+            currentSongIndex.value = newIndex;
+          } else {
+            // Song was in shuffled list but not in original? Should not happen if logic is correct.
+            // Default to 0 if playlist not empty.
+            currentSongIndex.value = currentPlaylist.isNotEmpty ? 0 : -1;
+          }
+        } else {
+          // No specific song was playing, or index was out of bounds.
+          // Default to 0 if playlist not empty.
+          currentSongIndex.value = currentPlaylist.isNotEmpty ? 0 : -1;
+        }
+      }
+      // If originalPlaylist was null, it means shuffle was toggled off without being properly on,
+      // or the playlist was empty. currentPlaylist remains as is, or was handled by empty check.
+      audioPlayer.setShuffleModeEnabled(false);
     }
   }
 
@@ -357,12 +437,16 @@ class PlayerController extends BaseController {
     }
   }
 
-  void toggleFavorite(int songId) {
+  Future<void> toggleFavorite(int songId) async {
     if (favoriteSongs.contains(songId)) {
       favoriteSongs.remove(songId);
     } else {
       favoriteSongs.add(songId);
     }
+    // Save favorite songs
+    final prefsInstance = await prefs;
+    final favoriteSongIdsAsStrings = favoriteSongs.map((id) => id.toString()).toList();
+    await prefsInstance.setStringList(kFavoriteSongsKey, favoriteSongIdsAsStrings);
   }
 
   void setVolume(double value) {

@@ -11,12 +11,6 @@ class ArtistController extends BaseController {
   final RxMap<int, List<SongModel>> artistSongs = <int, List<SongModel>>{}.obs;
   PlayerController playerController = Get.find<PlayerController>();
 
-  @override
-  void onInit() async {
-    super.onInit();
-    // fetchArtists(); // Removed call
-  }
-
   Future<void> fetchArtists() async {
     final artistsList = await audioQuery.queryArtists(
       sortType: ArtistSortType.ARTIST,
