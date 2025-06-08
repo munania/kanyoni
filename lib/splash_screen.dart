@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:kanyoni/homepage.dart'; // Adjust import if needed
 import 'package:kanyoni/main.dart'; // For AppLayout, requestPermissions
-// import 'package:kanyoni/controllers/media_player_handler.dart'; // For AudioService - Not directly used here
-import 'package:audio_service/audio_service.dart'; // For AudioService - Not directly used here, but good for context
 
 class SplashScreenPage extends StatefulWidget {
   const SplashScreenPage({super.key});
@@ -33,7 +31,8 @@ class _SplashScreenPageState extends State<SplashScreenPage> {
     } catch (e) {
       // Handle errors, maybe navigate to an error page or retry
       if (mounted) {
-        Get.snackbar("Error", "Initialization failed: $e", snackPosition: SnackPosition.BOTTOM);
+        Get.snackbar("Error", "Initialization failed: $e",
+            snackPosition: SnackPosition.BOTTOM);
         // Optionally, navigate to an error screen or retry mechanism here
       }
     } finally {

@@ -39,28 +39,33 @@ class _TracksListState extends State<TracksList>
   @override
   Widget build(BuildContext context) {
     super.build(context);
-    return Obx(
-      () => CustomScrollView(
-        cacheExtent: 1000, // Cache more items offscreen
-        physics: const AlwaysScrollableScrollPhysics(),
-        slivers: [
-          SliverFixedExtentList(
-            itemExtent: _itemExtent,
-            delegate: SliverChildBuilderDelegate(
-              (context, index) {
-                final song = _playerController.songs[index];
-                return _TrackListItem(
-                  song: song,
-                  index: index,
-                  playerController: _playerController,
-                );
-              },
-              childCount: _playerController.songs.length,
-            ),
+    return Obx(() => RefreshIndicator(
+          onRefresh: () async {
+            await _playerController.refreshSongs();
+          },
+          child: CustomScrollView(
+            // The existing CustomScrollView
+            cacheExtent: 1000,
+            physics: const AlwaysScrollableScrollPhysics(),
+            // Ensure physics allows overscrolling for refresh
+            slivers: [
+              SliverFixedExtentList(
+                itemExtent: _itemExtent,
+                delegate: SliverChildBuilderDelegate(
+                  (context, index) {
+                    final song = _playerController.songs[index];
+                    return _TrackListItem(
+                      song: song,
+                      index: index,
+                      playerController: _playerController,
+                    );
+                  },
+                  childCount: _playerController.songs.length,
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
-    );
+        ));
   }
 }
 
