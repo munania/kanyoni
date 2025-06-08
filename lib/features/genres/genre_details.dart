@@ -44,6 +44,7 @@ class _GenreDetailsViewState extends State<GenreDetailsView>
 
   Future<void> _loadSongs() async {
     try {
+      await _genreController.ensureSongsForGenreLoaded(widget.genre.id);
       _genreSongs = _genreController.getGenreSongs(widget.genre.id);
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -63,7 +64,12 @@ class _GenreDetailsViewState extends State<GenreDetailsView>
         borderRadius: const BorderRadius.vertical(
           top: Radius.circular(AppTheme.cornerRadius),
         ),
-        panelBuilder: (scrollController) => NowPlayingPanel(
+        panel: NowPlayingPanel(
+          playerController: _playerController,
+          isDarkMode: isDarkMode,
+        ),
+        collapsed: CollapsedPanel(
+          panelController: _panelController,
           playerController: _playerController,
           isDarkMode: isDarkMode,
         ),
@@ -73,7 +79,7 @@ class _GenreDetailsViewState extends State<GenreDetailsView>
           slivers: [
             _buildAppBar(isDarkMode),
             _buildHeaderSection(isDarkMode),
-            _buildSongList(),
+            _buildSongList(isDarkMode),
           ],
         ),
       ),
@@ -145,10 +151,16 @@ class _GenreDetailsViewState extends State<GenreDetailsView>
     );
   }
 
-  Widget _buildSongList() {
+  Widget _buildSongList(bool isDarkMode) {
     if (_isLoading) {
-      return const SliverFillRemaining(
-        child: Center(child: CircularProgressIndicator()),
+      return SliverFillRemaining(
+        child: Center(
+          child: CircularProgressIndicator(
+            color: isDarkMode
+                ? AppTheme.playerControlsDark
+                : AppTheme.playerControlsLight,
+          ),
+        ),
       );
     }
 
