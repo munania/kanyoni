@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:kanyoni/controllers/player_controller.dart';
+import 'package:kanyoni/features/playlists/controller/playlists_controller.dart'; // Import PlaylistController
 import 'package:marquee/marquee.dart';
 import 'package:on_audio_query_forked/on_audio_query.dart';
 import 'package:sliding_up_panel/sliding_up_panel.dart';
@@ -427,6 +428,7 @@ class ExtraControls extends StatelessWidget {
   Widget build(BuildContext context) {
     final Color iconColor =
         isDarkMode ? AppTheme.playerControlsDark : AppTheme.playerControlsLight;
+    final playlistController = Get.find<PlaylistController>(); // Get PlaylistController
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -451,23 +453,113 @@ class ExtraControls extends StatelessWidget {
           },
           iconSize: 30,
         ),
-        PopupMenuButton<String>(
-          icon: Icon(Icons.playlist_add, color: iconColor, size: 30),
-          onSelected: (value) {
-            // TODO: Implement playlist addition
-            Get.snackbar(
-              'Add to Playlist',
-              'Added to $value',
-              snackPosition: SnackPosition.BOTTOM,
-            );
-          },
-          itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
-            const PopupMenuItem<String>(
-              value: 'Custom Playlist',
-              child: Text('Create New Playlist'),
-            ),
-          ],
-        ),
+        Obx(() => PopupMenuButton<String>(
+              icon: Icon(Icons.playlist_add, color: iconColor, size: 30),
+              onSelected: (String value) async {
+                // Ensure current song is available
+                if (playerController.currentPlaylist.isEmpty ||
+                    playerController.currentSongIndex.value < 0 ||
+                    playerController.currentSongIndex.value >= playerController.currentPlaylist.length) {
+                  Get.snackbar('Error', 'No song currently playing or selected.');
+                  return;
+                }
+                final currentSong = playerController.currentPlaylist[playerController.currentSongIndex.value];
+
+                if (value == '__CREATE_NEW__') {
+                  final nameController = TextEditingController();
+                  Get.dialog(
+                    AlertDialog(
+                      title: const Text('Create New Playlist'),
+                      content: TextField(
+                        controller: nameController,
+                        decoration: const InputDecoration(hintText: 'Playlist Name'),
+                        autofocus: true,
+                      ),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Get.back(),
+                          child: const Text('Cancel'),
+                        ),
+                        TextButton(
+                          onPressed: async () {
+                            if (nameController.text.trim().isEmpty) {
+                              Get.snackbar('Error', 'Playlist name cannot be empty.');
+                              return;
+                            }
+                            Get.back(); // Close dialog first
+                            final playlistName = nameController.text.trim();
+
+                            // Create playlist (assuming it adds [kanyoni] and fetches internally)
+                            await playlistController.createPlaylist(playlistName);
+
+                            // Attempt to find the newly created playlist
+                            // This might need adjustment if createPlaylist has specific behavior
+                            // regarding the [kanyoni] suffix or if fetchPlaylists is not immediate.
+                            // For now, we assume it's findable by the original name or with suffix.
+                            final newPlaylist = playlistController.playlists.firstWhereOrNull(
+                              (p) => p.playlist == playlistName || p.playlist == "$playlistName [kanyoni]"
+                            );
+
+                            if (newPlaylist != null) {
+                              final success = await playlistController.addToPlaylist(newPlaylist.id, currentSong.id);
+                              if (success) {
+                                Get.snackbar('Success', 'Added ${currentSong.title} to ${newPlaylist.playlist}');
+                              } else {
+                                Get.snackbar('Error', 'Failed to add ${currentSong.title} to ${newPlaylist.playlist}');
+                              }
+                            } else {
+                              Get.snackbar('Error', 'Could not find or create playlist "$playlistName".');
+                            }
+                          },
+                          child: const Text('Create & Add'),
+                        ),
+                      ],
+                    ),
+                  );
+                } else {
+                  try {
+                    final playlistId = int.parse(value);
+                    final playlist = playlistController.playlists.firstWhereOrNull((p) => p.id == playlistId);
+                    if (playlist == null) {
+                      Get.snackbar('Error', 'Playlist not found.');
+                      return;
+                    }
+                    final success = await playlistController.addToPlaylist(playlistId, currentSong.id);
+                    if (success) {
+                      Get.snackbar('Success', 'Added ${currentSong.title} to ${playlist.playlist}');
+                    } else {
+                      Get.snackbar('Error', 'Failed to add ${currentSong.title} to ${playlist.playlist}');
+                    }
+                  } catch (e) {
+                    Get.snackbar('Error', 'Invalid playlist ID format.');
+                  }
+                }
+              },
+              itemBuilder: (BuildContext popupContext) { // Renamed context to avoid conflict
+                final items = <PopupMenuEntry<String>>[];
+
+                // Add existing playlists
+                for (var playlist in playlistController.playlists) {
+                  items.add(PopupMenuItem<String>(
+                    value: playlist.id.toString(),
+                    child: Text(playlist.playlist),
+                  ));
+                }
+
+                // Add separator
+                if (playlistController.playlists.isNotEmpty) {
+                  items.add(const PopupMenuDivider());
+                }
+
+                // Add "Create New Playlist" option
+                items.add(const PopupMenuItem<String>(
+                  value: '__CREATE_NEW__',
+                  child: Text('Create New Playlist'),
+                ));
+
+                return items;
+              },
+            )),
         IconButton(
           icon: Icon(Icons.equalizer, color: iconColor, size: 30),
           onPressed: () {

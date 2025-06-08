@@ -18,6 +18,7 @@ class PlayerController extends BaseController {
   static const String kShuffleModeKey = 'shuffle_mode';
   static const String kRepeatModeKey = 'repeat_mode';
   static const String kLastSaveTimeKey = 'last_save_time';
+  static const String kFavoriteSongsKey = 'favoriteSongs'; // Added key
   static const Duration kMaxRestoreThreshold = Duration(hours: 24);
   static const String kLastAppCloseTimeKey = 'last_app_close_time';
   static const Duration kScrollPositionRestoreThreshold = Duration(minutes: 30);
@@ -90,6 +91,12 @@ class PlayerController extends BaseController {
 
       // Restore scroll position
       listScrollOffset.value = prefsInstance.getDouble(kLastListPositionKey) ?? 0.0;
+
+      // Load favorite songs
+      final favoriteSongIdsAsStrings = prefsInstance.getStringList(kFavoriteSongsKey);
+      if (favoriteSongIdsAsStrings != null) {
+        favoriteSongs.value = favoriteSongIdsAsStrings.map((id) => int.parse(id)).toList();
+      }
 
       // Last song restoration is now handled by fetchAllSongs
       // if (songs.isEmpty) { // Check if songs are not loaded
@@ -357,12 +364,16 @@ class PlayerController extends BaseController {
     }
   }
 
-  void toggleFavorite(int songId) {
+  Future<void> toggleFavorite(int songId) async {
     if (favoriteSongs.contains(songId)) {
       favoriteSongs.remove(songId);
     } else {
       favoriteSongs.add(songId);
     }
+    // Save favorite songs
+    final prefsInstance = await prefs;
+    final favoriteSongIdsAsStrings = favoriteSongs.map((id) => id.toString()).toList();
+    await prefsInstance.setStringList(kFavoriteSongsKey, favoriteSongIdsAsStrings);
   }
 
   void setVolume(double value) {
