@@ -218,8 +218,6 @@ class _SongListItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    print("MY SONGS..........................");
-    print(song);
     final isFavorite = playerController.favoriteSongs.contains(song.id);
 
     return ListTile(

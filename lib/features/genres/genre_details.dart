@@ -64,12 +64,7 @@ class _GenreDetailsViewState extends State<GenreDetailsView>
         borderRadius: const BorderRadius.vertical(
           top: Radius.circular(AppTheme.cornerRadius),
         ),
-        panel: NowPlayingPanel(
-          playerController: _playerController,
-          isDarkMode: isDarkMode,
-        ),
-        collapsed: CollapsedPanel(
-          panelController: _panelController,
+        panelBuilder: (scrollController) => NowPlayingPanel(
           playerController: _playerController,
           isDarkMode: isDarkMode,
         ),
@@ -79,7 +74,7 @@ class _GenreDetailsViewState extends State<GenreDetailsView>
           slivers: [
             _buildAppBar(isDarkMode),
             _buildHeaderSection(isDarkMode),
-            _buildSongList(isDarkMode),
+            _buildSongList(),
           ],
         ),
       ),
@@ -151,16 +146,10 @@ class _GenreDetailsViewState extends State<GenreDetailsView>
     );
   }
 
-  Widget _buildSongList(bool isDarkMode) {
+  Widget _buildSongList() {
     if (_isLoading) {
-      return SliverFillRemaining(
-        child: Center(
-          child: CircularProgressIndicator(
-            color: isDarkMode
-                ? AppTheme.playerControlsDark
-                : AppTheme.playerControlsLight,
-          ),
-        ),
+      return const SliverFillRemaining(
+        child: Center(child: CircularProgressIndicator()),
       );
     }
 

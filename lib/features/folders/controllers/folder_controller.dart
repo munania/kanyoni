@@ -7,12 +7,6 @@ class FolderController extends GetxController {
   final RxMap<String, List<SongModel>> folderSongs =
       <String, List<SongModel>>{}.obs;
 
-  @override
-  void onInit() {
-    super.onInit();
-    // fetchFolders(); // Removed call
-  }
-
   Future<void> fetchFolders() async {
     final List<String> folderList = await audioQuery.queryAllPath();
     folders.value = folderList;

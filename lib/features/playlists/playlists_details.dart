@@ -337,8 +337,8 @@ class _AddToPlaylistDialogContentState
           ),
           Expanded(
             child: Obx(() {
-              final playlistSongs = widget.playlistController
-                  .getPlaylistSongs(widget.playlistId);
+              final playlistSongs =
+                  widget.playlistController.getPlaylistSongs(widget.playlistId);
 
               return ListView.builder(
                 itemCount: _filteredSongs.length,

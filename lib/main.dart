@@ -13,7 +13,6 @@ import 'features/albums/controller/album_controller.dart';
 import 'features/artists/controller/artists_controller.dart';
 import 'features/genres/controller/genres_controller.dart';
 import 'features/playlists/controller/playlists_controller.dart';
-import 'homepage.dart';
 import 'now_playing.dart';
 import 'splash_screen.dart'; // Added import for splash screen
 import 'utils/theme/theme.dart';
