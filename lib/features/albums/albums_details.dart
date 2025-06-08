@@ -43,9 +43,9 @@ class _AlbumDetailsViewState extends State<AlbumDetailsView>
   }
 
   Future<void> _loadSongs() async {
-    await Future.microtask(() {
-      _albumSongs = _albumController.getAlbumSongs(widget.album.id).toList();
-    });
+    await _albumController.ensureSongsForAlbumLoaded(widget.album.id);
+    _albumSongs = _albumController.getAlbumSongs(widget.album.id).toList();
+    print('Loaded songs: ${_albumSongs.length}');
     setState(() => _isLoading = false);
   }
 
