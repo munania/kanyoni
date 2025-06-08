@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:kanyoni/controllers/player_controller.dart';
@@ -25,14 +24,16 @@ class FavoritesView extends StatelessWidget {
             itemCount: playerController.favoriteSongs.length,
             itemBuilder: (context, index) {
               final songId = playerController.favoriteSongs[index];
-              final SongModel? song = playerController.songs.firstWhereOrNull((s) => s.id == songId);
+              final SongModel? song = playerController.songs
+                  .firstWhereOrNull((s) => s.id == songId);
 
               if (song == null) {
                 // Optional: Display a placeholder or a message if song details are not found
                 return ListTile(
                   leading: const Icon(Icons.error_outline),
                   title: Text('Song ID: $songId (Details not found)'),
-                  subtitle: const Text('This song might have been removed or is not available.'),
+                  subtitle: const Text(
+                      'This song might have been removed or is not available.'),
                 );
               }
 

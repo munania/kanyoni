@@ -1,4 +1,5 @@
 import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:iconsax/iconsax.dart';
@@ -36,13 +37,16 @@ class CollapsedPanel extends StatelessWidget {
         final List<SongModel> playlist =
             List.from(playerController.currentPlaylist);
         final int index = playerController.currentSongIndex.value;
-        print(
-            '[CollapsedPanel.Obx] Playlist length: ${playlist.length}, Index: $index'); // Log here
+        if (kDebugMode) {
+          print(
+              '[CollapsedPanel.Obx] Playlist length: ${playlist.length}, Index: $index');
+        } // Log here
 
         // Check bounds
         if (playlist.isEmpty || index < 0 || index >= playlist.length) {
-          print(
-              '[CollapsedPanel.Obx] Conditions met to shrink panel.'); // Log here
+          if (kDebugMode) {
+            print('[CollapsedPanel.Obx] Conditions met to shrink panel.');
+          } // Log here
           return const SizedBox.shrink();
         }
 
