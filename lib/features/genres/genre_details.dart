@@ -44,6 +44,7 @@ class _GenreDetailsViewState extends State<GenreDetailsView>
 
   Future<void> _loadSongs() async {
     try {
+      await _genreController.ensureSongsForGenreLoaded(widget.genre.id);
       _genreSongs = _genreController.getGenreSongs(widget.genre.id);
     } finally {
       if (mounted) setState(() => _isLoading = false);

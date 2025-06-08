@@ -12,6 +12,7 @@ import 'package:kanyoni/features/folders/folders.dart';
 import 'package:kanyoni/features/genres/controller/genres_controller.dart'; // Added
 import 'package:kanyoni/features/playlists/controller/playlists_controller.dart'; // Added
 import 'package:kanyoni/features/playlists/playlists.dart';
+import 'package:kanyoni/features/favorites/favorites_view.dart'; // Import FavoritesView
 import 'package:kanyoni/utils/helpers/helper_functions.dart';
 import 'package:kanyoni/utils/theme/theme.dart';
 
@@ -49,7 +50,7 @@ class _HomePageState extends State<HomePage>
   }
 
   void _initializeTabController() {
-    _tabController = TabController(length: 6, vsync: this);
+    _tabController = TabController(length: 7, vsync: this); // Updated length to 7
     _tabController.addListener(() => setState(() {}));
   }
 
@@ -69,6 +70,10 @@ class _HomePageState extends State<HomePage>
       TabData(
         title: 'Tracks',
         view: const TracksView(),
+      ),
+      TabData(
+        title: 'Favorites', // Added Favorites tab
+        view: const FavoritesView(),
       ),
       TabData(
         title: 'Playlists',
