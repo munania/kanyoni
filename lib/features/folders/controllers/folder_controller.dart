@@ -10,10 +10,10 @@ class FolderController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    loadFolders();
+    // fetchFolders(); // Removed call
   }
 
-  Future<void> loadFolders() async {
+  Future<void> fetchFolders() async {
     final List<String> folderList = await audioQuery.queryAllPath();
     folders.value = folderList;
     await _loadSongsForFolders(folderList);

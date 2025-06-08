@@ -15,11 +15,11 @@ import 'features/genres/controller/genres_controller.dart';
 import 'features/playlists/controller/playlists_controller.dart';
 import 'homepage.dart';
 import 'now_playing.dart';
+import 'splash_screen.dart'; // Added import for splash screen
 import 'utils/theme/theme.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await requestPermissions();
   Get.put(BaseController());
   Get.put(PlaylistController());
   Get.put(AlbumController());
@@ -72,9 +72,7 @@ class MyApp extends StatelessWidget {
         themeMode: baseController.isDarkModeEnabled.value
             ? ThemeMode.dark
             : ThemeMode.light,
-        home: const AppLayout(
-          child: HomePage(),
-        ),
+        home: const SplashScreenPage(), // Home is now SplashScreenPage
       );
     });
   }
@@ -99,6 +97,7 @@ class _AppLayoutState extends State<AppLayout> {
   @override
   void initState() {
     super.initState();
+    // requestPermissions(); // Removed this line
     panelController = PanelController(); // Initialize once in state
   }
 

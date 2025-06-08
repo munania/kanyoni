@@ -14,32 +14,39 @@ class AlbumController extends BaseController {
   @override
   void onInit() async {
     super.onInit();
-    loadAlbums();
+    // fetchAlbums(); // Removed call
   }
 
-  Future<void> loadAlbums() async {
+  Future<void> fetchAlbums() async {
     final albumsList = await audioQuery.queryAlbums(
       sortType: AlbumSortType.ALBUM,
       orderType: OrderType.ASC_OR_SMALLER,
       uriType: UriType.EXTERNAL,
     );
     albums.value = albumsList;
+    // Removed song pre-loading logic from here
+  }
 
-    final albumSongsList = await Future.wait(albumsList.map((album) {
-      return audioQuery.queryAudiosFrom(
-        AudiosFromType.ALBUM_ID,
-        album.id,
-        sortType: SongSortType.DATE_ADDED,
-        orderType: OrderType.ASC_OR_SMALLER,
-      );
-    }));
-
-    for (int i = 0; i < albumsList.length; i++) {
-      albumSongs[albumsList[i].id] = albumSongsList[i];
+  Future<void> ensureSongsForAlbumLoaded(int albumId) async {
+    if (albumSongs[albumId] != null && albumSongs[albumId]!.isNotEmpty) {
+      return; // Already loaded
     }
+    // TODO: Consider adding isLoadingAlbumSongs[albumId] = true; if UI needs it
+
+    final queriedSongs = await audioQuery.queryAudiosFrom(
+      AudiosFromType.ALBUM_ID,
+      albumId,
+      sortType: SongSortType.DATE_ADDED, // Or your preferred sort order
+      orderType: OrderType.ASC_OR_SMALLER,
+    );
+    albumSongs[albumId] = queriedSongs;
+
+    // TODO: Consider adding isLoadingAlbumSongs[albumId] = false;
+    albumSongs.refresh(); // Notify listeners if using Obx for the map directly or specific keys
   }
 
   Future<void> playAlbumSongs(int albumId) async {
+    await ensureSongsForAlbumLoaded(albumId); // Ensure songs are loaded before playing
     final songs = getAlbumSongs(albumId);
     if (songs.isNotEmpty) {
       playerController.currentPlaylist.value = songs;
