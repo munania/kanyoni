@@ -15,7 +15,7 @@ class PlaylistController extends BaseController {
   @override
   void onInit() {
     super.onInit();
-    // fetchPlaylists(); // Removed call
+    fetchPlaylists(); // Removed call
   }
 
   Future<void> fetchPlaylists() async {
@@ -32,6 +32,9 @@ class PlaylistController extends BaseController {
           .toList();
 
       playlists.value = appPlaylists;
+      for (var playlist in appPlaylists) {
+        await ensureSongsForPlaylistLoaded(playlist.id);
+      }
       // await _cachePlaylistSongs(appPlaylists); // Removed direct caching of all playlist songs
     } catch (e) {
       _handleError('Loading playlists', e);

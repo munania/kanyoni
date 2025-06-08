@@ -37,6 +37,7 @@ class _PlaylistDetailsViewState extends State<PlaylistDetailsView>
     super.initState();
     _playlistController = Get.find<PlaylistController>();
     _playerController = Get.find<PlayerController>();
+    _playlistController.ensureSongsForPlaylistLoaded(widget.playlist.id);
   }
 
   @override
