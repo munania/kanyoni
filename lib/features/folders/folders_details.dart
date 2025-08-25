@@ -255,6 +255,8 @@ class _ArtworkWidget extends StatelessWidget {
       id: song.id,
       type: ArtworkType.AUDIO,
       size: 50,
+      quality: 100,
+      artworkQuality: FilterQuality.high,
       keepOldArtwork: true,
       nullArtworkWidget: const Icon(Iconsax.music, size: 50),
     );

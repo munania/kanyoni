@@ -101,6 +101,9 @@ class _PlaylistDetailsViewState extends State<PlaylistDetailsView>
         background: QueryArtworkWidget(
           id: widget.playlist.id,
           type: ArtworkType.ARTIST,
+          quality: 100,
+          size: 1000,
+          artworkQuality: FilterQuality.high,
           nullArtworkWidget: Container(
             color: isDarkMode ? Colors.grey[800] : Colors.grey[300],
             child: Icon(
