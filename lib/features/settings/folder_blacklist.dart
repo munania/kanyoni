@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:kanyoni/controllers/player_controller.dart';
+import 'package:kanyoni/features/folders/controllers/folder_controller.dart';
 import 'package:kanyoni/utils/services/shared_prefs_service.dart';
 import 'package:on_audio_query_forked/on_audio_query.dart';
 
@@ -13,6 +14,7 @@ class FolderBlacklistScreen extends StatefulWidget {
 
 class _FolderBlacklistScreenState extends State<FolderBlacklistScreen> {
   final PlayerController _playerController = Get.find<PlayerController>();
+  final FolderController _folderController = Get.find<FolderController>();
   final OnAudioQuery _audioQuery = OnAudioQuery();
   List<String> _allFolders = [];
   List<String> _blacklistedFolders = [];
@@ -45,6 +47,7 @@ class _FolderBlacklistScreenState extends State<FolderBlacklistScreen> {
     });
     await saveBlacklistedFolders(_blacklistedFolders);
     await _playerController.refreshSongs();
+    await _folderController.fetchFolders();
   }
 
   @override

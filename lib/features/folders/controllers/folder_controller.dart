@@ -1,16 +1,25 @@
 import 'package:get/get.dart';
+import 'package:kanyoni/controllers/player_controller.dart';
+import 'package:kanyoni/utils/services/shared_prefs_service.dart';
 import 'package:on_audio_query_forked/on_audio_query.dart';
 
 class FolderController extends GetxController {
   final OnAudioQuery audioQuery = OnAudioQuery();
+  final PlayerController _playerController = Get.find<PlayerController>();
   final RxList<String> folders = <String>[].obs;
   final RxMap<String, List<SongModel>> folderSongs =
       <String, List<SongModel>>{}.obs;
 
   Future<void> fetchFolders() async {
-    final List<String> folderList = await audioQuery.queryAllPath();
-    folders.value = folderList;
-    await _loadSongsForFolders(folderList);
+    final List<String> allFolders = await audioQuery.queryAllPath();
+    final List<String> blacklistedFolders = await getBlacklistedFolders();
+
+    final List<String> filteredFolders = allFolders
+        .where((folder) => !blacklistedFolders.contains(folder))
+        .toList();
+
+    folders.value = filteredFolders;
+    await _loadSongsForFolders(filteredFolders);
   }
 
   Future<void> _loadSongsForFolders(List<String> folderList) async {
@@ -21,7 +30,7 @@ class FolderController extends GetxController {
         orderType: OrderType.ASC_OR_SMALLER,
         uriType: UriType.EXTERNAL,
       );
-      folderSongs[folder] = songs;
+      folderSongs[folder] = await _playerController.applySongFilters(songs);
     }
   }
 

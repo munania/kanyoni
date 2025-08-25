@@ -33,7 +33,7 @@ class AlbumController extends BaseController {
       sortType: SongSortType.DATE_ADDED, // Or your preferred sort order
       orderType: OrderType.ASC_OR_SMALLER,
     );
-    albumSongs[albumId] = queriedSongs;
+    albumSongs[albumId] = await playerController.applySongFilters(queriedSongs);
 
     // TODO: Consider adding isLoadingAlbumSongs[albumId] = false;
     albumSongs

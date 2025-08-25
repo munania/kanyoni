@@ -140,7 +140,7 @@ class PlayerController extends BaseController {
         ignoreCase: true,
       );
 
-      final newSongs = await _applyFilters(queriedSongs);
+      final newSongs = await applySongFilters(queriedSongs);
 
       if (kDebugMode) {
         print('RefreshSongs: Total songs loaded: ${newSongs.length}');
@@ -338,7 +338,7 @@ class PlayerController extends BaseController {
         uriType: UriType.EXTERNAL,
         ignoreCase: true,
       );
-      songs.value = await _applyFilters(queriedSongs);
+      songs.value = await applySongFilters(queriedSongs);
       if (kDebugMode) {
         print('Total songs loaded: ${songs.length}');
       }
@@ -612,7 +612,7 @@ class PlayerController extends BaseController {
     }
   }
 
-  Future<List<SongModel>> _applyFilters(List<SongModel> songs) async {
+  Future<List<SongModel>> applySongFilters(List<SongModel> songs) async {
     final minLength = await getMinSongLength();
     final blacklistedFolders = await getBlacklistedFolders();
 
