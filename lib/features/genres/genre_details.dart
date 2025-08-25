@@ -64,7 +64,12 @@ class _GenreDetailsViewState extends State<GenreDetailsView>
         borderRadius: const BorderRadius.vertical(
           top: Radius.circular(AppTheme.cornerRadius),
         ),
-        panelBuilder: (scrollController) => NowPlayingPanel(
+        panel: NowPlayingPanel(
+          playerController: _playerController,
+          isDarkMode: isDarkMode,
+        ),
+        collapsed: CollapsedPanel(
+          panelController: _panelController,
           playerController: _playerController,
           isDarkMode: isDarkMode,
         ),
