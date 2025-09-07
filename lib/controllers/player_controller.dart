@@ -612,22 +612,54 @@ class PlayerController extends BaseController {
     }
   }
 
+  var filterType = SongFilterType.title.obs;
+  var filterText = ''.obs;
+
+  Future<void> setFilter(SongFilterType type, String text) async {
+    filterType.value = type;
+    filterText.value = text;
+    await refreshSongs();
+  }
+
   Future<List<SongModel>> applySongFilters(List<SongModel> songs) async {
     final minLength = await getMinSongLength();
     final blacklistedFolders = await getBlacklistedFolders();
 
-    if (minLength == 0 && blacklistedFolders.isEmpty) {
-      return songs;
+    var filteredSongs = songs;
+
+    // Apply blacklist and minimum length filters first
+    if (minLength > 0 || blacklistedFolders.isNotEmpty) {
+      final minLengthMs = minLength * 1000;
+      filteredSongs = filteredSongs.where((song) {
+        final isLongEnough = song.duration! >= minLengthMs;
+        final isInBlacklistedFolder = blacklistedFolders.any((folder) => song.data.startsWith(folder));
+        return isLongEnough && !isInBlacklistedFolder;
+      }).toList();
     }
 
-    final minLengthMs = minLength * 1000;
+    // Apply text-based filter
+    if (filterText.value.isNotEmpty) {
+      final query = filterText.value.toLowerCase();
+      filteredSongs = filteredSongs.where((song) {
+        switch (filterType.value) {
+          case SongFilterType.title:
+            return song.title.toLowerCase().contains(query);
+          case SongFilterType.artist:
+            return song.artist?.toLowerCase().contains(query) ?? false;
+          case SongFilterType.album:
+            return song.album?.toLowerCase().contains(query) ?? false;
+        }
+      }).toList();
+    }
 
-    return songs.where((song) {
-      final isLongEnough = song.duration! >= minLengthMs;
-      final isInBlacklistedFolder = blacklistedFolders.any((folder) => song.data.startsWith(folder));
-      return isLongEnough && !isInBlacklistedFolder;
-    }).toList();
+    return filteredSongs;
   }
+}
+
+enum SongFilterType {
+  title,
+  artist,
+  album,
 }
 
 class PositionData {
