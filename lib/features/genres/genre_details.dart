@@ -66,7 +66,6 @@ class _GenreDetailsViewState extends State<GenreDetailsView>
         ),
         panelBuilder: (scrollController) => NowPlayingPanel(
           playerController: _playerController,
-          isDarkMode: isDarkMode,
         ),
         body: CustomScrollView(
           controller: _scrollController,

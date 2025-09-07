@@ -42,6 +42,9 @@ class GenreCard extends StatelessWidget {
                   child: QueryArtworkWidget(
                     id: genre.id,
                     type: ArtworkType.GENRE,
+                    quality: 100,
+                    size: 500,
+                    artworkQuality: FilterQuality.high,
                     nullArtworkWidget: Container(
                       color: isDarkMode ? Colors.grey[800] : Colors.grey[300],
                       child: Icon(

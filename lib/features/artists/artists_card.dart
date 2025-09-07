@@ -40,6 +40,9 @@ class ArtistCard extends StatelessWidget {
                   child: QueryArtworkWidget(
                     id: artist.id,
                     type: ArtworkType.ARTIST,
+                    quality: 100,
+                    size: 500,
+                    artworkQuality: FilterQuality.high,
                     nullArtworkWidget: Container(
                       color: isDarkMode ? Colors.grey[800] : Colors.grey[300],
                       child: Icon(

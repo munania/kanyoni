@@ -53,7 +53,6 @@ class _SearchViewState extends State<SearchView> {
         ),
         panel: NowPlayingPanel(
           playerController: playerController,
-          isDarkMode: isDarkMode,
         ),
         collapsed: CollapsedPanel(
           panelController: panelController,

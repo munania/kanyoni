@@ -33,7 +33,7 @@ class GenreController extends BaseController {
       sortType: SongSortType.DATE_ADDED, // Or your preferred sort order
       orderType: OrderType.ASC_OR_SMALLER,
     );
-    genreSongs[genreId] = queriedSongs;
+    genreSongs[genreId] = await playerController.applySongFilters(queriedSongs);
 
     // TODO: Consider adding isLoadingGenreSongs[genreId] = false;
     genreSongs.refresh(); // Notify listeners

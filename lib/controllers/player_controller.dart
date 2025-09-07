@@ -133,12 +133,14 @@ class PlayerController extends BaseController {
 
     try {
       // --- Core song fetching logic (similar to fetchAllSongs) ---
-      final newSongs = await audioQuery.querySongs(
+      var queriedSongs = await audioQuery.querySongs(
         sortType: SongSortType.DATE_ADDED,
         orderType: OrderType.DESC_OR_GREATER,
         uriType: UriType.EXTERNAL,
         ignoreCase: true,
       );
+
+      final newSongs = await applySongFilters(queriedSongs);
 
       if (kDebugMode) {
         print('RefreshSongs: Total songs loaded: ${newSongs.length}');
@@ -330,12 +332,13 @@ class PlayerController extends BaseController {
     _songsLoadedSuccessfully = false; // Reset before attempting
 
     try {
-      songs.value = await audioQuery.querySongs(
+      var queriedSongs = await audioQuery.querySongs(
         sortType: SongSortType.DATE_ADDED,
         orderType: OrderType.DESC_OR_GREATER,
         uriType: UriType.EXTERNAL,
         ignoreCase: true,
       );
+      songs.value = await applySongFilters(queriedSongs);
       if (kDebugMode) {
         print('Total songs loaded: ${songs.length}');
       }
@@ -607,6 +610,23 @@ class PlayerController extends BaseController {
       case RepeatMode.all:
         return LoopMode.all;
     }
+  }
+
+  Future<List<SongModel>> applySongFilters(List<SongModel> songs) async {
+    final minLength = await getMinSongLength();
+    final blacklistedFolders = await getBlacklistedFolders();
+
+    if (minLength == 0 && blacklistedFolders.isEmpty) {
+      return songs;
+    }
+
+    final minLengthMs = minLength * 1000;
+
+    return songs.where((song) {
+      final isLongEnough = song.duration! >= minLengthMs;
+      final isInBlacklistedFolder = blacklistedFolders.any((folder) => song.data.startsWith(folder));
+      return isLongEnough && !isInBlacklistedFolder;
+    }).toList();
   }
 }
 

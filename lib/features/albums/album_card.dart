@@ -39,6 +39,9 @@ class AlbumCard extends StatelessWidget {
                 child: QueryArtworkWidget(
                   id: album.id,
                   type: ArtworkType.ALBUM,
+                  quality: 100,
+                  size: 500,
+                  artworkQuality: FilterQuality.high,
                   nullArtworkWidget: Container(
                     color: isDarkMode ? Colors.grey[800] : Colors.grey[300],
                     child: Icon(

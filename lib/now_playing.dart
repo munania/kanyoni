@@ -5,11 +5,14 @@ import 'package:get/get.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:kanyoni/controllers/player_controller.dart';
 import 'package:kanyoni/features/playlists/controller/playlists_controller.dart'; // Import PlaylistController
+import 'package:kanyoni/utils/helpers/helper_functions.dart';
 import 'package:marquee/marquee.dart';
 import 'package:on_audio_query_forked/on_audio_query.dart';
 import 'package:sliding_up_panel/sliding_up_panel.dart';
 
 import '../../utils/theme/theme.dart';
+import 'features/songDetails/song_details.dart';
+import 'lyrics/lyrics.dart';
 
 class CollapsedPanel extends StatelessWidget {
   final PlayerController playerController;
@@ -68,6 +71,8 @@ class CollapsedPanel extends StatelessWidget {
                 child: QueryArtworkWidget(
                   id: currentSong.id,
                   type: ArtworkType.AUDIO,
+                  quality: 100,
+                  artworkQuality: FilterQuality.high,
                   nullArtworkWidget: Icon(
                     Iconsax.music,
                     size: 50,
@@ -101,7 +106,6 @@ class CollapsedPanel extends StatelessWidget {
               ),
               MediaControls(
                 playerController: playerController,
-                isDarkMode: isDarkMode,
                 isExpanded: false,
               ),
             ],
@@ -114,16 +118,16 @@ class CollapsedPanel extends StatelessWidget {
 
 class NowPlayingPanel extends StatelessWidget {
   final PlayerController playerController;
-  final bool isDarkMode;
 
   const NowPlayingPanel({
     super.key,
     required this.playerController,
-    required this.isDarkMode,
   });
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = THelperFunctions.isDarkMode(context);
+
     return Obx(() {
       if (playerController.songs.isEmpty ||
           playerController.currentSongIndex.value >=
@@ -146,24 +150,30 @@ class NowPlayingPanel extends StatelessWidget {
         ),
         child: Column(
           children: [
-            const DragHandle(),
+            // const DragHandle(),
             Expanded(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
-                  ArtworkDisplay(song: currentSong, isDarkMode: isDarkMode),
+                  GestureDetector(
+                      onTap: () {
+                        Get.to(
+                          () => SongDetails(currentSong: currentSong),
+                        );
+                      },
+                      child: ArtworkDisplay(song: currentSong)),
                   SongInfo(song: currentSong),
                   ProgressControls(
-                      playerController: playerController,
-                      isDarkMode: isDarkMode),
+                    playerController: playerController,
+                  ),
                   MediaControls(
                     playerController: playerController,
-                    isDarkMode: isDarkMode,
                     isExpanded: true,
                   ),
                   ExtraControls(
-                      playerController: playerController,
-                      isDarkMode: isDarkMode),
+                    playerController: playerController,
+                    songId: currentSong.id,
+                  ),
                 ],
               ),
             ),
@@ -193,25 +203,25 @@ class DragHandle extends StatelessWidget {
 
 class ArtworkDisplay extends StatelessWidget {
   final SongModel song;
-  final bool isDarkMode;
 
   const ArtworkDisplay({
     super.key,
     required this.song,
-    required this.isDarkMode,
   });
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = THelperFunctions.isDarkMode(context);
+
     return Container(
       width: 300,
       height: 300,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(AppTheme.cornerRadius),
+        borderRadius: BorderRadius.zero,
         boxShadow: [
           BoxShadow(
-            color: Colors.black..withAlpha(51),
-            blurRadius: 20,
+            color: Colors.black.withAlpha(51),
+            blurRadius: 100,
             offset: const Offset(0, 10),
           ),
         ],
@@ -219,6 +229,9 @@ class ArtworkDisplay extends StatelessWidget {
       child: QueryArtworkWidget(
         id: song.id,
         type: ArtworkType.AUDIO,
+        quality: 100,
+        size: 1000,
+        artworkQuality: FilterQuality.high,
         nullArtworkWidget: Icon(
           Iconsax.music,
           size: 150,
@@ -270,16 +283,15 @@ class SongInfo extends StatelessWidget {
 
 class ProgressControls extends StatelessWidget {
   final PlayerController playerController;
-  final bool isDarkMode;
 
   const ProgressControls({
     super.key,
     required this.playerController,
-    required this.isDarkMode,
   });
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = THelperFunctions.isDarkMode(context);
     return Column(
       children: [
         StreamBuilder<PositionData>(
@@ -287,18 +299,22 @@ class ProgressControls extends StatelessWidget {
           builder: (context, snapshot) {
             final positionData = snapshot.data;
             return ProgressBar(
+              barCapShape: BarCapShape.round,
+              barHeight: 3.5,
               progress: positionData?.position ?? Duration.zero,
               buffered: Duration.zero,
               total: positionData?.duration ?? Duration.zero,
               onSeek: playerController.audioPlayer.seek,
-              baseBarColor: isDarkMode ? Colors.grey[800] : Colors.grey[300],
+              baseBarColor: isDarkMode ? Colors.grey[700] : Colors.grey[400],
               progressBarColor: isDarkMode
-                  ? AppTheme.progressBarDark
-                  : AppTheme.progressBarLight,
+                  ? AppTheme.nowPlayingLight
+                  : AppTheme.nowPlayingDark,
               bufferedBarColor: Colors.transparent,
               thumbColor: isDarkMode
-                  ? AppTheme.progressBarDark
-                  : AppTheme.progressBarLight,
+                  ? AppTheme.nowPlayingLight
+                  : AppTheme.nowPlayingDark,
+              thumbGlowRadius: 20.0,
+              timeLabelType: TimeLabelType.totalTime,
               timeLabelTextStyle: AppTheme.bodyMedium,
             );
           },
@@ -310,18 +326,18 @@ class ProgressControls extends StatelessWidget {
 
 class MediaControls extends StatelessWidget {
   final PlayerController playerController;
-  final bool isDarkMode;
   final bool isExpanded;
 
   const MediaControls({
     super.key,
     required this.playerController,
-    required this.isDarkMode,
     required this.isExpanded,
   });
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = THelperFunctions.isDarkMode(context);
+
     final Color iconColor =
         isDarkMode ? AppTheme.playerControlsDark : AppTheme.playerControlsLight;
 
@@ -355,53 +371,73 @@ class MediaControls extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
+        /// Shuffle Button
         IconButton(
           icon: Obx(() => Icon(
                 playerController.isShuffle.value
                     ? Icons.shuffle_on_outlined
                     : Icons.shuffle,
                 color: playerController.isShuffle.value
-                    ? AppTheme.playerControlsDark
-                    : iconColor,
+                    ? iconColor
+                    : (isDarkMode
+                        ? AppTheme.nowPlayingLight
+                        : AppTheme.nowPlayingDark),
               )),
           onPressed: playerController.toggleShuffle,
           iconSize: 30,
         ),
+
+        /// Previous Button
         IconButton(
           icon: const Icon(Iconsax.previous),
           onPressed: playerController.playPrevious,
           iconSize: 35,
-          color: iconColor,
+          color:
+              isDarkMode ? AppTheme.nowPlayingLight : AppTheme.nowPlayingDark,
         ),
-        Container(
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: iconColor,
-          ),
-          padding: const EdgeInsets.all(8),
-          child: Obx(() => IconButton(
+
+        /// Play/Pause Button
+        Obx(
+          () => Container(
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: playerController.isPlaying.value
+                    ? AppTheme.nowPlayingDark // When playing
+                    : AppTheme.playerControlsDark, // When paused
+              ),
+              padding: const EdgeInsets.all(8),
+              child: IconButton(
                 icon: Icon(
                   playerController.isPlaying.value
-                      ? Iconsax.pause
-                      : Iconsax.play,
-                  color: isDarkMode ? Colors.black : Colors.white,
+                      ? Iconsax.pause //Pause icon
+                      : Iconsax.play, // Play icon
+                  color: playerController.isPlaying.value
+                      ? AppTheme.nowPlayingLight // When playing
+                      : AppTheme.nowPlayingDark,
                 ),
                 onPressed: playerController.togglePlayPause,
                 iconSize: 40,
               )),
         ),
+
+        /// Next Button
         IconButton(
           icon: const Icon(Iconsax.next),
           onPressed: playerController.playNext,
           iconSize: 35,
-          color: iconColor,
+          color:
+              isDarkMode ? AppTheme.nowPlayingLight : AppTheme.nowPlayingDark,
         ),
+
+        /// Repeat Button
         IconButton(
           icon: Obx(() => Icon(
                 _getRepeatIcon(playerController.repeatMode.value),
                 color: playerController.repeatMode.value != RepeatMode.off
                     ? AppTheme.playerControlsDark
-                    : iconColor,
+                    : (isDarkMode
+                        ? AppTheme.nowPlayingLight
+                        : AppTheme.nowPlayingDark),
               )),
           onPressed: playerController.toggleRepeatMode,
           iconSize: 30,
@@ -424,27 +460,32 @@ class MediaControls extends StatelessWidget {
 
 class ExtraControls extends StatelessWidget {
   final PlayerController playerController;
-  final bool isDarkMode;
+  final int songId;
 
   const ExtraControls({
     super.key,
     required this.playerController,
-    required this.isDarkMode,
+    required this.songId,
   });
 
   @override
   Widget build(BuildContext context) {
-    final Color iconColor =
-        isDarkMode ? AppTheme.playerControlsDark : AppTheme.playerControlsLight;
-    // final playlistController = Get.find<PlaylistController>(); // Removed: GetBuilder will provide PlaylistController instance
+    double iconSize = 22;
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       // Changed to spaceBetween
       children: [
         IconButton(
+            onPressed: () {
+              Get.to(() => Lyrics(songId: songId));
+            },
+            icon: Icon(
+              Iconsax.book,
+              size: iconSize,
+            )),
+        IconButton(
           icon: Obx(() {
-            // iconColor is already in scope from the build method
             // Defensive checks
             if (playerController.currentPlaylist.isEmpty ||
                 playerController.currentSongIndex.value < 0 ||
@@ -452,9 +493,8 @@ class ExtraControls extends StatelessWidget {
                     playerController.currentPlaylist.length) {
               // Return a default icon state if no valid song is selected/playing
               return Icon(
-                Icons.favorite_border, // Default non-favorited icon
-                color:
-                    iconColor, // Use the general iconColor for non-favorited state
+                Icons.favorite_border,
+                size: iconSize, // Default non-favourite icon
               );
             }
 
@@ -466,7 +506,7 @@ class ExtraControls extends StatelessWidget {
 
             return Icon(
               isFavorite ? Icons.favorite : Icons.favorite_border,
-              color: isFavorite ? AppTheme.playerControlsDark : iconColor,
+              size: iconSize,
             );
           }),
           onPressed: () {
@@ -487,7 +527,10 @@ class ExtraControls extends StatelessWidget {
         GetBuilder<PlaylistController>(builder: (playlistCtrl) {
           // playlistCtrl is the instance from GetBuilder
           return PopupMenuButton<String>(
-            icon: Icon(Icons.playlist_add, color: iconColor, size: 30),
+            icon: Icon(
+              Icons.playlist_add,
+              size: iconSize,
+            ),
             onSelected: (String value) async {
               // Ensure current song is available (using playerController from ExtraControls)
               if (playerController.currentPlaylist.isEmpty ||
@@ -608,7 +651,10 @@ class ExtraControls extends StatelessWidget {
           );
         }),
         IconButton(
-          icon: Icon(Icons.equalizer, color: iconColor, size: 30),
+          icon: Icon(
+            Icons.equalizer,
+            size: iconSize,
+          ),
           onPressed: () {
             // TODO: Implement equalizer
             Get.snackbar(
@@ -619,7 +665,10 @@ class ExtraControls extends StatelessWidget {
           },
         ),
         IconButton(
-          icon: Icon(Icons.timer, color: iconColor, size: 30),
+          icon: Icon(
+            Icons.timer,
+            size: iconSize,
+          ),
           onPressed: () {
             // TODO: Implement sleep timer
             Get.snackbar(

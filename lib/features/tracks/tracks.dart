@@ -38,17 +38,85 @@ class _TracksListState extends State<TracksList>
 
   @override
   Widget build(BuildContext context) {
+    final intSongCount = _playerController.songs.length.toString();
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
     super.build(context);
     return Obx(() => RefreshIndicator(
           onRefresh: () async {
             await _playerController.refreshSongs();
           },
           child: CustomScrollView(
-            // The existing CustomScrollView
             cacheExtent: 1000,
             physics: const AlwaysScrollableScrollPhysics(),
-            // Ensure physics allows overscrolling for refresh
             slivers: [
+              // Add song count as first sliver
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      // Song count (left)
+                      Text(
+                        "$intSongCount Songs",
+                        style: AppTheme.bodyMedium.copyWith(
+                          color: isDarkMode ? Colors.white : Colors.black,
+                        ),
+                      ),
+
+                      // Filter dropdown (right)
+                      DropdownButton<SongSortType>(
+                        // value: _playerController.currentSortType.value,
+                        dropdownColor: isDarkMode ? Colors.black : Colors.white,
+                        style: AppTheme.bodyMedium.copyWith(
+                          color: isDarkMode ? Colors.white : Colors.black,
+                        ),
+                        underline: const SizedBox(),
+                        items: const [
+                          DropdownMenuItem(
+                            value: SongSortType.TITLE,
+                            child: Text("Name"),
+                          ),
+                          DropdownMenuItem(
+                            value: SongSortType.ARTIST,
+                            child: Text("Artist"),
+                          ),
+                          DropdownMenuItem(
+                            value: SongSortType.ALBUM,
+                            child: Text("Album"),
+                          ),
+                          DropdownMenuItem(
+                            value: SongSortType.DATE_ADDED,
+                            child: Text("Date Added"),
+                          ),
+                          DropdownMenuItem(
+                            // value: SongSortType.DATE_MODIFIED,
+                            child: Text("Date Modified"),
+                          ),
+                          DropdownMenuItem(
+                            value: SongSortType.DURATION,
+                            child: Text("Duration"),
+                          ),
+                        ],
+                        onChanged: (value) async {
+                          if (value != null) {
+                            // _playerController.currentSortType.value = value;
+
+                            // Refresh songs using on_audio_query with sorting
+                            await _playerController.refreshSongs(
+                                // sortType: value,
+                                // orderType: OrderType.ASC_OR_SMALLER, // or DESC
+                                );
+                          }
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              // Existing song list
               SliverFixedExtentList(
                 itemExtent: _itemExtent,
                 delegate: SliverChildBuilderDelegate(
@@ -140,6 +208,8 @@ class _ArtworkWidget extends StatelessWidget {
       type: ArtworkType.AUDIO,
       keepOldArtwork: true,
       size: 50,
+      quality: 100,
+      artworkQuality: FilterQuality.high,
       nullArtworkWidget: const Icon(
         Iconsax.music,
         size: 50,

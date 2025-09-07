@@ -33,7 +33,8 @@ class ArtistController extends BaseController {
       sortType: SongSortType.DATE_ADDED, // Or your preferred sort order
       orderType: OrderType.ASC_OR_SMALLER,
     );
-    artistSongs[artistId] = queriedSongs;
+    artistSongs[artistId] =
+        await playerController.applySongFilters(queriedSongs);
 
     // TODO: Consider adding isLoadingArtistSongs[artistId] = false;
     artistSongs.refresh(); // Notify listeners

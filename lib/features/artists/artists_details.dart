@@ -62,7 +62,6 @@ class _ArtistsDetailsViewState extends State<ArtistsDetailsView>
         ),
         panel: NowPlayingPanel(
           playerController: _playerController,
-          isDarkMode: isDarkMode,
         ),
         collapsed: CollapsedPanel(
           panelController: _panelController,
@@ -97,6 +96,9 @@ class _ArtistsDetailsViewState extends State<ArtistsDetailsView>
         background: QueryArtworkWidget(
           id: widget.artist.id,
           type: ArtworkType.ARTIST,
+          quality: 100,
+          size: 1000,
+          artworkQuality: FilterQuality.high,
           nullArtworkWidget: Container(
             color: isDarkMode ? Colors.grey[800] : Colors.grey[300],
             child: Icon(

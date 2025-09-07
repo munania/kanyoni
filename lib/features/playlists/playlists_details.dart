@@ -4,11 +4,10 @@ import 'package:iconsax/iconsax.dart';
 import 'package:kanyoni/controllers/player_controller.dart';
 import 'package:kanyoni/features/playlists/controller/playlists_controller.dart';
 import 'package:kanyoni/features/playlists/playlist_song_card.dart';
+import 'package:kanyoni/now_playing.dart';
+import 'package:kanyoni/utils/theme/theme.dart';
 import 'package:on_audio_query_forked/on_audio_query.dart';
 import 'package:sliding_up_panel/sliding_up_panel.dart';
-
-import '../../now_playing.dart';
-import '../../utils/theme/theme.dart';
 
 class PlaylistDetailsView extends StatefulWidget {
   final PlaylistModel playlist;
@@ -55,7 +54,6 @@ class _PlaylistDetailsViewState extends State<PlaylistDetailsView>
         ),
         panel: NowPlayingPanel(
           playerController: _playerController,
-          isDarkMode: isDarkMode,
         ),
         collapsed: CollapsedPanel(
           panelController: _panelController,
@@ -101,6 +99,9 @@ class _PlaylistDetailsViewState extends State<PlaylistDetailsView>
         background: QueryArtworkWidget(
           id: widget.playlist.id,
           type: ArtworkType.ARTIST,
+          quality: 100,
+          size: 1000,
+          artworkQuality: FilterQuality.high,
           nullArtworkWidget: Container(
             color: isDarkMode ? Colors.grey[800] : Colors.grey[300],
             child: Icon(

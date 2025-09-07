@@ -67,7 +67,6 @@ class _AlbumDetailsViewState extends State<AlbumDetailsView>
         ),
         panel: NowPlayingPanel(
           playerController: _playerController,
-          isDarkMode: isDarkMode,
         ),
         collapsed: CollapsedPanel(
           panelController: _panelController,
@@ -102,6 +101,9 @@ class _AlbumDetailsViewState extends State<AlbumDetailsView>
         background: QueryArtworkWidget(
           id: widget.album.id,
           type: ArtworkType.ALBUM,
+          quality: 100,
+          size: 1000,
+          artworkQuality: FilterQuality.high,
           nullArtworkWidget: Container(
             color: isDarkMode ? Colors.grey[800] : Colors.grey[300],
             child: Icon(
