@@ -31,6 +31,7 @@ class PlayerController extends BaseController {
   var currentPlaylist = <SongModel>[].obs;
   var volume = 1.0.obs;
   var listScrollOffset = 0.0.obs; // For tracking list scroll position
+  var currentSortType = SongSortType.DATE_ADDED.obs;
   Future<int?> get lastAppCloseTime async =>
       (await prefs).getInt(kLastAppCloseTimeKey);
   List<SongModel>? originalPlaylist;
@@ -116,7 +117,7 @@ class PlayerController extends BaseController {
     }
   }
 
-  Future<void> refreshSongs() async {
+  Future<void> refreshSongs({SongSortType? sortType}) async {
     if (_isSongQueryInProgress) {
       if (kDebugMode) {
         print('RefreshSongs: Skipped as a song query is already in progress.');
@@ -125,16 +126,18 @@ class PlayerController extends BaseController {
     }
 
     _isSongQueryInProgress = true;
-    // _songsLoadedSuccessfully = false; // We will set this based on outcome
+    if (sortType != null) {
+      currentSortType.value = sortType;
+    }
 
     if (kDebugMode) {
-      print('RefreshSongs: Starting song query...');
+      print('RefreshSongs: Starting song query with sortType: ${currentSortType.value}');
     }
 
     try {
       // --- Core song fetching logic (similar to fetchAllSongs) ---
       var queriedSongs = await audioQuery.querySongs(
-        sortType: SongSortType.DATE_ADDED,
+        sortType: currentSortType.value,
         orderType: OrderType.DESC_OR_GREATER,
         uriType: UriType.EXTERNAL,
         ignoreCase: true,
@@ -333,7 +336,7 @@ class PlayerController extends BaseController {
 
     try {
       var queriedSongs = await audioQuery.querySongs(
-        sortType: SongSortType.DATE_ADDED,
+        sortType: currentSortType.value,
         orderType: OrderType.DESC_OR_GREATER,
         uriType: UriType.EXTERNAL,
         ignoreCase: true,
@@ -612,54 +615,22 @@ class PlayerController extends BaseController {
     }
   }
 
-  var filterType = SongFilterType.title.obs;
-  var filterText = ''.obs;
-
-  Future<void> setFilter(SongFilterType type, String text) async {
-    filterType.value = type;
-    filterText.value = text;
-    await refreshSongs();
-  }
-
   Future<List<SongModel>> applySongFilters(List<SongModel> songs) async {
     final minLength = await getMinSongLength();
     final blacklistedFolders = await getBlacklistedFolders();
 
-    var filteredSongs = songs;
-
-    // Apply blacklist and minimum length filters first
-    if (minLength > 0 || blacklistedFolders.isNotEmpty) {
-      final minLengthMs = minLength * 1000;
-      filteredSongs = filteredSongs.where((song) {
-        final isLongEnough = song.duration! >= minLengthMs;
-        final isInBlacklistedFolder = blacklistedFolders.any((folder) => song.data.startsWith(folder));
-        return isLongEnough && !isInBlacklistedFolder;
-      }).toList();
+    if (minLength == 0 && blacklistedFolders.isEmpty) {
+      return songs;
     }
 
-    // Apply text-based filter
-    if (filterText.value.isNotEmpty) {
-      final query = filterText.value.toLowerCase();
-      filteredSongs = filteredSongs.where((song) {
-        switch (filterType.value) {
-          case SongFilterType.title:
-            return song.title.toLowerCase().contains(query);
-          case SongFilterType.artist:
-            return song.artist?.toLowerCase().contains(query) ?? false;
-          case SongFilterType.album:
-            return song.album?.toLowerCase().contains(query) ?? false;
-        }
-      }).toList();
-    }
+    final minLengthMs = minLength * 1000;
 
-    return filteredSongs;
+    return songs.where((song) {
+      final isLongEnough = song.duration! >= minLengthMs;
+      final isInBlacklistedFolder = blacklistedFolders.any((folder) => song.data.startsWith(folder));
+      return isLongEnough && !isInBlacklistedFolder;
+    }).toList();
   }
-}
-
-enum SongFilterType {
-  title,
-  artist,
-  album,
 }
 
 class PositionData {

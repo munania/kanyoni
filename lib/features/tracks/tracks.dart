@@ -66,9 +66,44 @@ class _TracksListState extends State<TracksList>
                       ),
 
                       // Filter dropdown (right)
-                      IconButton(
-                        icon: const Icon(Iconsax.filter),
-                        onPressed: () => _showFilterDialog(context),
+                      DropdownButton<SongSortType>(
+                        value: _playerController.currentSortType.value,
+                        dropdownColor: isDarkMode ? Colors.black : Colors.white,
+                        style: AppTheme.bodyMedium.copyWith(
+                          color: isDarkMode ? Colors.white : Colors.black,
+                        ),
+                        underline: const SizedBox(),
+                        items: const [
+                          DropdownMenuItem(
+                            value: SongSortType.TITLE,
+                            child: Text("Name"),
+                          ),
+                          DropdownMenuItem(
+                            value: SongSortType.ARTIST,
+                            child: Text("Artist"),
+                          ),
+                          DropdownMenuItem(
+                            value: SongSortType.ALBUM,
+                            child: Text("Album"),
+                          ),
+                          DropdownMenuItem(
+                            value: SongSortType.DATE_ADDED,
+                            child: Text("Date Added"),
+                          ),
+                          DropdownMenuItem(
+                            value: SongSortType.DATE_MODIFIED,
+                            child: Text("Date Modified"),
+                          ),
+                          DropdownMenuItem(
+                            value: SongSortType.DURATION,
+                            child: Text("Duration"),
+                          ),
+                        ],
+                        onChanged: (value) async {
+                          if (value != null) {
+                            await _playerController.refreshSongs(sortType: value);
+                          }
+                        },
                       ),
                     ],
                   ),
@@ -93,70 +128,6 @@ class _TracksListState extends State<TracksList>
             ],
           ),
         ));
-  }
-
-  void _showFilterDialog(BuildContext context) {
-    final controller = Get.find<PlayerController>();
-    final textController = TextEditingController(text: controller.filterText.value);
-
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Filter Songs'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: textController,
-                decoration: const InputDecoration(
-                  labelText: 'Filter by...',
-                ),
-              ),
-              Obx(() => DropdownButton<SongFilterType>(
-                    value: controller.filterType.value,
-                    onChanged: (value) {
-                      if (value != null) {
-                        controller.filterType.value = value;
-                      }
-                    },
-                    items: const [
-                      DropdownMenuItem(
-                        value: SongFilterType.title,
-                        child: Text('Title'),
-                      ),
-                      DropdownMenuItem(
-                        value: SongFilterType.artist,
-                        child: Text('Artist'),
-                      ),
-                      DropdownMenuItem(
-                        value: SongFilterType.album,
-                        child: Text('Album'),
-                      ),
-                    ],
-                  )),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                controller.setFilter(controller.filterType.value, '');
-                Navigator.of(context).pop();
-              },
-              child: const Text('Clear'),
-            ),
-            TextButton(
-              onPressed: () {
-                controller.setFilter(
-                    controller.filterType.value, textController.text);
-                Navigator.of(context).pop();
-              },
-              child: const Text('Apply'),
-            ),
-          ],
-        );
-      },
-    );
   }
 }
 
