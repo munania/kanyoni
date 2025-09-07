@@ -67,7 +67,6 @@ class _AlbumDetailsViewState extends State<AlbumDetailsView>
         ),
         panel: NowPlayingPanel(
           playerController: _playerController,
-          isDarkMode: isDarkMode,
         ),
         collapsed: CollapsedPanel(
           panelController: _panelController,

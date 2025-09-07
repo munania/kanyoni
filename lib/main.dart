@@ -1,9 +1,11 @@
 import 'package:audio_service/audio_service.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:hive/hive.dart';
 import 'package:kanyoni/controllers/base_controller.dart';
 import 'package:kanyoni/features/folders/controllers/folder_controller.dart';
 import 'package:kanyoni/utils/helpers/helper_functions.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:sliding_up_panel/sliding_up_panel.dart';
 
@@ -36,6 +38,16 @@ void main() async {
       androidStopForegroundOnPause: true,
     ),
   );
+
+  // Get application document directory
+  final appDir = await getApplicationDocumentsDirectory();
+
+  // Initialize Hive and point it to that folder
+  Hive.init(appDir.path);
+
+  // Open a box (like a table in DB)
+  await Hive.openBox('lyricsBox');
+
   runApp(const MyApp());
 }
 
@@ -116,7 +128,6 @@ class _AppLayoutState extends State<AppLayout> {
         ),
         panel: NowPlayingPanel(
           playerController: playerController,
-          isDarkMode: isDarkMode,
         ),
         collapsed: CollapsedPanel(
           playerController: playerController,

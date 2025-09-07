@@ -62,7 +62,6 @@ class _ArtistsDetailsViewState extends State<ArtistsDetailsView>
         ),
         panel: NowPlayingPanel(
           playerController: _playerController,
-          isDarkMode: isDarkMode,
         ),
         collapsed: CollapsedPanel(
           panelController: _panelController,
