@@ -51,20 +51,18 @@ void main() async {
   runApp(const MyApp());
 }
 
-Future<void> requestPermissions() async {
-  // Request storage permissions
-  if (await Permission.storage.request().isGranted) {
-    debugPrint('Storage permission granted');
-  } else {
-    debugPrint('Storage permission denied');
+Future<bool> requestPermissions() async {
+  // Request both permissions and return combined result
+  final storageGranted = await Permission.storage.request().isGranted;
+  final audioGranted = await Permission.audio.request().isGranted;
+
+  if (storageGranted && audioGranted) {
+    debugPrint('All permissions granted');
+    return true;
   }
 
-  // For Android 13 and above, we need additional media permissions
-  if (await Permission.audio.request().isGranted) {
-    debugPrint('Audio permission granted');
-  } else {
-    debugPrint('Audio permission denied');
-  }
+  debugPrint('Permissions denied');
+  return false;
 }
 
 class MyApp extends StatelessWidget {

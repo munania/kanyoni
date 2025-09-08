@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:kanyoni/homepage.dart'; // Adjust import if needed
-import 'package:kanyoni/main.dart'; // For AppLayout, requestPermissions
+import 'package:kanyoni/main.dart';
+
+import 'features/playlists/controller/playlists_controller.dart'; // For AppLayout, requestPermissions
 
 class SplashScreenPage extends StatefulWidget {
   const SplashScreenPage({super.key});
@@ -11,6 +13,8 @@ class SplashScreenPage extends StatefulWidget {
 }
 
 class _SplashScreenPageState extends State<SplashScreenPage> {
+  final playlistController = Get.find<PlaylistController>();
+
   @override
   void initState() {
     super.initState();
@@ -28,6 +32,9 @@ class _SplashScreenPageState extends State<SplashScreenPage> {
       // 2. Navigate to the main app
       // A small delay can make the splash screen visible briefly if init is too fast.
       await Future.delayed(const Duration(milliseconds: 500));
+
+      // Initialize your controllers after permissions
+      await playlistController.fetchPlaylists();
     } catch (e) {
       // Handle errors, maybe navigate to an error page or retry
       if (mounted) {

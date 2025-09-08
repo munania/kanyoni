@@ -11,14 +11,12 @@ class PlaylistController extends BaseController {
       <int, List<SongModel>>{}.obs;
   final PlayerController _playerController = Get.put(PlayerController());
   static const String _appPlaylistIdentifier = '[kanyoni]';
+  bool _isInitialized = false;
 
-  @override
-  void onInit() {
-    super.onInit();
-    fetchPlaylists(); // Removed call
-  }
 
   Future<void> fetchPlaylists() async {
+    if (_isInitialized) return;
+
     try {
       final loadedPlaylists = await audioQuery.queryPlaylists(
         sortType: PlaylistSortType.PLAYLIST,
@@ -26,18 +24,39 @@ class PlaylistController extends BaseController {
         uriType: UriType.EXTERNAL,
       );
 
+      // Process playlists in a single operation
       final appPlaylists = loadedPlaylists
           .where((p) => p.playlist.endsWith(_appPlaylistIdentifier))
           .map(_createSanitizedPlaylist)
           .toList();
 
+      // Set playlists once
       playlists.value = appPlaylists;
+
+      // Load songs sequentially
       for (var playlist in appPlaylists) {
-        await ensureSongsForPlaylistLoaded(playlist.id);
+        if (!_playlistSongsCache.containsKey(playlist.id)) {
+          await _loadPlaylistSongs(playlist.id);
+        }
       }
-      // await _cachePlaylistSongs(appPlaylists); // Removed direct caching of all playlist songs
+
+      _isInitialized = true;
     } catch (e) {
       _handleError('Loading playlists', e);
+    }
+  }
+
+  Future<void> _loadPlaylistSongs(int playlistId) async {
+    try {
+      final songs = await audioQuery.queryAudiosFrom(
+        AudiosFromType.PLAYLIST,
+        playlistId,
+        orderType: OrderType.ASC_OR_SMALLER,
+      );
+
+      _playlistSongsCache[playlistId] = songs.cast<SongModel>();
+    } catch (e) {
+      _handleError('Loading songs for playlist $playlistId', e);
     }
   }
 
