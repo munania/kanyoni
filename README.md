@@ -4,8 +4,6 @@ Kanyoni
 
 ## To-Do
 
-Add Background music playing.
-
 Fix playlist renaming.
 
 ## Description
