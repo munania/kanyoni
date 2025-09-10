@@ -41,6 +41,9 @@ class _TracksListState extends State<TracksList>
     final intSongCount = _playerController.songs.length.toString();
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
+    print("fffffffffffffffffffffffffffffffffffff");
+    print(intSongCount);
+
     super.build(context);
     return Obx(() => RefreshIndicator(
           onRefresh: () async {
@@ -67,7 +70,7 @@ class _TracksListState extends State<TracksList>
 
                       // Filter dropdown (right)
                       DropdownButton<SongSortType>(
-                        // value: _playerController.currentSortType.value,
+                        value: _playerController.currentSortType.value,
                         dropdownColor: isDarkMode ? Colors.black : Colors.white,
                         style: AppTheme.bodyMedium.copyWith(
                           color: isDarkMode ? Colors.white : Colors.black,
@@ -91,23 +94,14 @@ class _TracksListState extends State<TracksList>
                             child: Text("Date Added"),
                           ),
                           DropdownMenuItem(
-                            // value: SongSortType.DATE_MODIFIED,
-                            child: Text("Date Modified"),
-                          ),
-                          DropdownMenuItem(
                             value: SongSortType.DURATION,
                             child: Text("Duration"),
                           ),
                         ],
                         onChanged: (value) async {
                           if (value != null) {
-                            // _playerController.currentSortType.value = value;
-
-                            // Refresh songs using on_audio_query with sorting
                             await _playerController.refreshSongs(
-                                // sortType: value,
-                                // orderType: OrderType.ASC_OR_SMALLER, // or DESC
-                                );
+                                sortType: value);
                           }
                         },
                       ),
