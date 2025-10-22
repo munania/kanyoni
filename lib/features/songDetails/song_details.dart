@@ -34,14 +34,12 @@ class SongDetails extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        backgroundColor:
-            isDarkMode ? AppTheme.nowPlayingDark : AppTheme.nowPlayingLight,
         leading: IconButton(
           icon: Icon(
             Iconsax.arrow_left,
-            color: isDarkMode
-                ? AppTheme.playerControlsLight
-                : AppTheme.playerControlsDark,
+            // color: isDarkMode
+            //     ? AppTheme.playerControlsLight
+            //     : AppTheme.playerControlsDark,
           ),
           onPressed: () => Navigator.of(context).pop(),
         ),
@@ -79,9 +77,9 @@ class SongDetails extends StatelessWidget {
                     nullArtworkWidget: Icon(
                       Iconsax.music,
                       size: 150,
-                      color: isDarkMode
-                          ? AppTheme.playerControlsDark
-                          : AppTheme.playerControlsLight,
+                      // color: isDarkMode
+                      //     ? AppTheme.playerControlsDark
+                      //     : AppTheme.playerControlsLight,
                     ),
                   ),
                 ),
@@ -89,9 +87,9 @@ class SongDetails extends StatelessWidget {
 
               /// Horizontal Divider
               Divider(
-                color: isDarkMode
-                    ? AppTheme.playerControlsLight.withAlpha(80)
-                    : AppTheme.playerControlsDark,
+                // color: isDarkMode
+                //     ? AppTheme.playerControlsLight.withAlpha(80)
+                //     : AppTheme.playerControlsDark,
                 thickness: 1,
               ),
 
@@ -144,7 +142,6 @@ class DetailsWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDarkMode = THelperFunctions.isDarkMode(context);
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -152,19 +149,12 @@ class DetailsWidget extends StatelessWidget {
         Text(
           leftLabel,
           overflow: TextOverflow.ellipsis,
-          style: AppTheme.bodyMedium.copyWith(
-            color: isDarkMode
-                ? AppTheme.playerControlsLight
-                : AppTheme.playerControlsDark,
-          ),
+          style: AppTheme.bodyMedium.copyWith(),
         ),
         Text(
           rightLabel,
           overflow: TextOverflow.ellipsis,
-          style: AppTheme.bodyMedium.copyWith(
-            color:
-                isDarkMode ? AppTheme.nowPlayingLight : AppTheme.nowPlayingDark,
-          ),
+          style: AppTheme.bodyMedium.copyWith(),
         ),
       ],
     );

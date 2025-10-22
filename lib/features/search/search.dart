@@ -3,7 +3,6 @@ import 'package:get/get.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:kanyoni/controllers/player_controller.dart';
 import 'package:kanyoni/now_playing.dart';
-import 'package:kanyoni/utils/helpers/helper_functions.dart';
 import 'package:kanyoni/utils/theme/theme.dart';
 import 'package:on_audio_query_forked/on_audio_query.dart';
 import 'package:sliding_up_panel/sliding_up_panel.dart';
@@ -26,6 +25,12 @@ class _SearchViewState extends State<SearchView> {
     super.initState();
   }
 
+  @override
+  void dispose() {
+    playerController.currentPlaylist.value = playerController.songs;
+    super.dispose();
+  }
+
   void _filterSongs(String query) {
     if (query.isEmpty) {
       _filteredSongs.value = playerController.songs;
@@ -38,15 +43,26 @@ class _SearchViewState extends State<SearchView> {
     }
   }
 
+  void _playFromSearch(SongModel song) {
+    //update the current playlist to the filtered songs
+    playerController.currentPlaylist.value = _filteredSongs;
+
+    //Find the index of the song in the filtered list
+    final index = _filteredSongs.indexWhere((s) => s.id == song.id);
+
+    // Play the selected song
+    if (index != -1) {
+      playerController.playSong(index);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final isDarkMode = THelperFunctions.isDarkMode(context);
-
     return Scaffold(
       resizeToAvoidBottomInset: false, // Important: only on the root Scaffold
       body: SlidingUpPanel(
         controller: panelController,
-        minHeight: 70,
+        minHeight: 80,
         maxHeight: MediaQuery.of(context).size.height,
         borderRadius: const BorderRadius.vertical(
           top: Radius.circular(AppTheme.cornerRadius),
@@ -57,7 +73,6 @@ class _SearchViewState extends State<SearchView> {
         collapsed: CollapsedPanel(
           panelController: panelController,
           playerController: playerController,
-          isDarkMode: isDarkMode,
         ),
         body: SafeArea(
           child: Column(
@@ -87,9 +102,6 @@ class _SearchViewState extends State<SearchView> {
                           nullArtworkWidget: Icon(
                             Iconsax.music,
                             size: 50,
-                            color: isDarkMode
-                                ? AppTheme.playerControlsDark
-                                : AppTheme.playerControlsLight,
                           ),
                         ),
                         title: Text(
@@ -104,7 +116,7 @@ class _SearchViewState extends State<SearchView> {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
-                        onTap: () => playerController.playSong(song),
+                        onTap: () => _playFromSearch(song),
                       );
                     },
                   ),
@@ -115,11 +127,5 @@ class _SearchViewState extends State<SearchView> {
         ),
       ),
     );
-  }
-
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
   }
 }

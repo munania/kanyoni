@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:kanyoni/features/albums/controller/album_controller.dart';
 
-import '../../utils/helpers/helper_functions.dart';
 import 'album_card.dart';
 import 'albums_details.dart';
 
@@ -34,27 +33,26 @@ class _AlbumsViewState extends State<AlbumsView>
   @override
   Widget build(BuildContext context) {
     super.build(context);
-    final isDarkMode = THelperFunctions.isDarkMode(context);
-
     return Obx(() {
-      return GridView.builder(
-        physics: const BouncingScrollPhysics(),
-        padding: const EdgeInsets.all(16),
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
-          childAspectRatio: 0.65,
-          crossAxisSpacing: 16,
-          mainAxisSpacing: 16,
+      return Scaffold(
+        body: GridView.builder(
+          physics: const BouncingScrollPhysics(),
+          padding: const EdgeInsets.all(16),
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 2,
+            childAspectRatio: 0.65,
+            crossAxisSpacing: 16,
+            mainAxisSpacing: 16,
+          ),
+          itemCount: albumController.albums.length,
+          itemBuilder: (context, index) {
+            final album = albumController.albums[index];
+            return AlbumCard(
+              album: album,
+              onTap: () => Get.to(() => AlbumDetailsView(album: album)),
+            );
+          },
         ),
-        itemCount: albumController.albums.length,
-        itemBuilder: (context, index) {
-          final album = albumController.albums[index];
-          return AlbumCard(
-            album: album,
-            isDarkMode: isDarkMode,
-            onTap: () => Get.to(() => AlbumDetailsView(album: album)),
-          );
-        },
       );
     });
   }

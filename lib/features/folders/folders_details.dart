@@ -72,7 +72,6 @@ class _FolderDetailsViewState extends State<FolderDetailsView>
         collapsed: CollapsedPanel(
           panelController: _panelController,
           playerController: _playerController,
-          isDarkMode: isDarkMode,
         ),
         body: CustomScrollView(
           controller: _scrollController,
@@ -102,8 +101,12 @@ class _FolderDetailsViewState extends State<FolderDetailsView>
           ),
         ),
         background: Container(
-          color: isDarkMode ? Colors.grey[800] : Colors.grey[300],
-          child: const Icon(Iconsax.folder_25, size: 100),
+          color: Theme.of(context).highlightColor,
+          child: Icon(
+            Iconsax.folder_25,
+            size: 100,
+            color: Theme.of(context).primaryColor,
+          ),
         ),
       ),
     );
@@ -278,7 +281,7 @@ class _FavoriteButton extends StatelessWidget {
       return IconButton(
         icon: Icon(
           isFavorite ? Icons.favorite : Icons.favorite_border,
-          color: isFavorite ? AppTheme.playerControlsDark : null,
+          // color: isFavorite ? AppTheme.playerControlsDark : null,
         ),
         onPressed: () => playerController.toggleFavorite(song.id),
       );
@@ -308,20 +311,20 @@ class _PlayAllButton extends StatelessWidget {
             },
       icon: Icon(
         Icons.play_arrow,
-        color: isDarkMode ? AppTheme.nowPlayingDark : AppTheme.nowPlayingLight,
+        // color: isDarkMode ? AppTheme.nowPlayingDark : AppTheme.nowPlayingLight,
       ),
       label: Text(
         'Play All',
         style: TextStyle(
-          color:
-              isDarkMode ? AppTheme.nowPlayingDark : AppTheme.nowPlayingLight,
-        ),
+            // color:
+            // isDarkMode ? AppTheme.nowPlayingDark : AppTheme.nowPlayingLight,
+            ),
       ),
       style: ElevatedButton.styleFrom(
-        backgroundColor: isDarkMode
-            ? AppTheme.playerControlsDark
-            : AppTheme.playerControlsLight,
-      ),
+          // backgroundColor: isDarkMode
+          //     ? AppTheme.playerControlsDark
+          //     : AppTheme.playerControlsLight,
+          ),
     );
   }
 }

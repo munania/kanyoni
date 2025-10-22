@@ -31,46 +31,48 @@ class _FoldersViewState extends State<FoldersView>
     super.build(context);
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
-    return Obx(() => ListView.builder(
-          padding: const EdgeInsets.all(16),
-          itemCount: folderController.folders.length,
-          itemBuilder: (context, index) {
-            final folder = folderController.folders[index];
-            final songCount = folderController.getSongCount(folder);
+    return Scaffold(
+      body: Obx(() => ListView.builder(
+            padding: const EdgeInsets.all(16),
+            itemCount: folderController.folders.length,
+            itemBuilder: (context, index) {
+              final folder = folderController.folders[index];
+              final songCount = folderController.getSongCount(folder);
 
-            return ListTile(
-              leading: Icon(
-                Iconsax.folder_25,
-                color: Colors.grey,
-                size: 48,
-              ),
-              title: Text(
-                path.basename(folder),
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: isDarkMode ? Colors.white : Colors.black87,
+              return ListTile(
+                leading: Icon(
+                  Iconsax.folder_25,
+                  color: Theme.of(context).primaryColor,
+                  size: 48,
                 ),
-              ),
-              subtitle: Text(
-                '$songCount ${songCount == 1 ? 'song' : 'songs'}',
-                style: TextStyle(
-                  color: isDarkMode ? Colors.white70 : Colors.black54,
+                title: Text(
+                  path.basename(folder),
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: isDarkMode ? Colors.white : Colors.black87,
+                  ),
                 ),
-              ),
-              onTap: () {
-                // Navigate to folder details
-                Get.to(() => FolderDetailsView(
-                      folderPath: folder,
-                    ));
-              },
-              trailing: Icon(
-                Icons.chevron_right,
-                color: Colors.grey,
-                size: 20,
-              ),
-            );
-          },
-        ));
+                subtitle: Text(
+                  '$songCount ${songCount == 1 ? 'song' : 'songs'}',
+                  style: TextStyle(
+                    color: isDarkMode ? Colors.white70 : Colors.black54,
+                  ),
+                ),
+                onTap: () {
+                  // Navigate to folder details
+                  Get.to(() => FolderDetailsView(
+                        folderPath: folder,
+                      ));
+                },
+                trailing: Icon(
+                  Icons.chevron_right,
+                  color: Colors.grey,
+                  size: 20,
+                ),
+              );
+            },
+          )),
+    );
   }
 }

@@ -50,7 +50,7 @@ class Lyrics extends StatelessWidget {
             icon: Icon(
               Iconsax.trash,
               size: 25,
-              color: Colors.red.shade400,
+              color: Theme.of(context).primaryColor,
             ),
           ),
           IconButton(

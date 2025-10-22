@@ -28,7 +28,7 @@ class PlaylistCard extends StatelessWidget {
         Get.find<PlaylistController>();
 
     return Card(
-      color: isDarkMode ? AppTheme.nowPlayingDark : AppTheme.nowPlayingLight,
+      // color: isDarkMode ? AppTheme.nowPlayingDark : AppTheme.nowPlayingLight,
       elevation: 0,
       margin: const EdgeInsets.only(bottom: 12),
       shape: RoundedRectangleBorder(

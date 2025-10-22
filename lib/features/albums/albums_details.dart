@@ -71,7 +71,6 @@ class _AlbumDetailsViewState extends State<AlbumDetailsView>
         collapsed: CollapsedPanel(
           panelController: _panelController,
           playerController: _playerController,
-          isDarkMode: isDarkMode,
         ),
         body: CustomScrollView(
           controller: _scrollController,
@@ -145,23 +144,12 @@ class _AlbumDetailsViewState extends State<AlbumDetailsView>
               onPressed: () => _albumController.playAlbumSongs(widget.album.id),
               icon: Icon(
                 Icons.play_arrow,
-                color: isDarkMode
-                    ? AppTheme.nowPlayingDark
-                    : AppTheme.nowPlayingLight,
               ),
               label: Text(
                 'Play All',
-                style: TextStyle(
-                  color: isDarkMode
-                      ? AppTheme.nowPlayingDark
-                      : AppTheme.nowPlayingLight,
-                ),
+                style: TextStyle(),
               ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: isDarkMode
-                    ? AppTheme.playerControlsDark
-                    : AppTheme.playerControlsLight,
-              ),
+              style: ElevatedButton.styleFrom(),
             ),
           ],
         ),
@@ -173,11 +161,7 @@ class _AlbumDetailsViewState extends State<AlbumDetailsView>
     if (_isLoading) {
       return SliverFillRemaining(
         child: Center(
-          child: CircularProgressIndicator(
-            color: isDarkMode
-                ? AppTheme.playerControlsDark
-                : AppTheme.playerControlsLight,
-          ),
+          child: CircularProgressIndicator(),
         ),
       );
     }
@@ -247,7 +231,6 @@ class _SongListItem extends StatelessWidget {
       trailing: IconButton(
         icon: Icon(
           isFavorite ? Icons.favorite : Icons.favorite_border,
-          color: isFavorite ? AppTheme.playerControlsDark : null,
         ),
         onPressed: () => playerController.toggleFavorite(song.id),
       ),
