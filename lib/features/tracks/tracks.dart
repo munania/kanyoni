@@ -11,7 +11,9 @@ class TracksView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const TracksList();
+    return Scaffold(
+      body: const TracksList(),
+    );
   }
 }
 
@@ -34,100 +36,102 @@ class _TracksListState extends State<TracksList>
   void initState() {
     super.initState();
     _playerController = Get.find<PlayerController>();
+    // Fetch songs when view is initialized
+    _playerController.fetchAllSongs();
   }
 
   @override
   Widget build(BuildContext context) {
-    final intSongCount = _playerController.songs.length.toString();
+    super.build(context);
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
-    print("fffffffffffffffffffffffffffffffffffff");
-    print(intSongCount);
-
     super.build(context);
-    return Obx(() => RefreshIndicator(
-          onRefresh: () async {
-            await _playerController.refreshSongs();
-          },
-          child: CustomScrollView(
-            cacheExtent: 1000,
-            physics: const AlwaysScrollableScrollPhysics(),
-            slivers: [
-              // Add song count as first sliver
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      // Song count (left)
-                      Text(
-                        "$intSongCount Songs",
-                        style: AppTheme.bodyMedium.copyWith(
-                          color: isDarkMode ? Colors.white : Colors.black,
-                        ),
-                      ),
+    return Obx(() {
+      final songCount = _playerController.songs.length.toString();
 
-                      // Filter dropdown (right)
-                      DropdownButton<SongSortType>(
-                        value: _playerController.currentSortType.value,
-                        dropdownColor: isDarkMode ? Colors.black : Colors.white,
-                        style: AppTheme.bodyMedium.copyWith(
-                          color: isDarkMode ? Colors.white : Colors.black,
-                        ),
-                        underline: const SizedBox(),
-                        items: const [
-                          DropdownMenuItem(
-                            value: SongSortType.TITLE,
-                            child: Text("Name"),
-                          ),
-                          DropdownMenuItem(
-                            value: SongSortType.ARTIST,
-                            child: Text("Artist"),
-                          ),
-                          DropdownMenuItem(
-                            value: SongSortType.ALBUM,
-                            child: Text("Album"),
-                          ),
-                          DropdownMenuItem(
-                            value: SongSortType.DATE_ADDED,
-                            child: Text("Date Added"),
-                          ),
-                          DropdownMenuItem(
-                            value: SongSortType.DURATION,
-                            child: Text("Duration"),
-                          ),
-                        ],
-                        onChanged: (value) async {
-                          if (value != null) {
-                            await _playerController.refreshSongs(
-                                sortType: value);
-                          }
-                        },
+      return RefreshIndicator(
+        onRefresh: () async {
+          await _playerController.refreshSongs();
+        },
+        child: CustomScrollView(
+          cacheExtent: 1000,
+          physics: const AlwaysScrollableScrollPhysics(),
+          slivers: [
+            // Add song count as first sliver
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    // Song count (left)
+                    Text(
+                      "$songCount Songs",
+                      style: AppTheme.bodyMedium.copyWith(
+                        color: isDarkMode ? Colors.white : Colors.black,
                       ),
-                    ],
-                  ),
+                    ),
+
+                    // Filter dropdown (right)
+                    DropdownButton<SongSortType>(
+                      value: _playerController.currentSortType.value,
+                      dropdownColor: Theme.of(context).primaryColor,
+                      style: AppTheme.bodyMedium.copyWith(
+                        color: isDarkMode ? Colors.white : Colors.black,
+                      ),
+                      underline: const SizedBox(),
+                      items: const [
+                        DropdownMenuItem(
+                          value: SongSortType.TITLE,
+                          child: Text("Name"),
+                        ),
+                        DropdownMenuItem(
+                          value: SongSortType.ARTIST,
+                          child: Text("Artist"),
+                        ),
+                        DropdownMenuItem(
+                          value: SongSortType.ALBUM,
+                          child: Text("Album"),
+                        ),
+                        DropdownMenuItem(
+                          value: SongSortType.DATE_ADDED,
+                          child: Text("Date Added"),
+                        ),
+                        DropdownMenuItem(
+                          value: SongSortType.DURATION,
+                          child: Text("Duration"),
+                        ),
+                      ],
+                      onChanged: (value) async {
+                        if (value != null) {
+                          await _playerController.refreshSongs(sortType: value);
+                        }
+                      },
+                    ),
+                  ],
                 ),
               ),
+            ),
 
-              // Existing song list
-              SliverFixedExtentList(
-                itemExtent: _itemExtent,
-                delegate: SliverChildBuilderDelegate(
-                  (context, index) {
-                    final song = _playerController.songs[index];
-                    return _TrackListItem(
-                      song: song,
-                      index: index,
-                      playerController: _playerController,
-                    );
-                  },
-                  childCount: _playerController.songs.length,
-                ),
+            // Existing song list
+            SliverFixedExtentList(
+              itemExtent: _itemExtent,
+              delegate: SliverChildBuilderDelegate(
+                (context, index) {
+                  final song = _playerController.songs[index];
+                  return _TrackListItem(
+                    song: song,
+                    index: index,
+                    playerController: _playerController,
+                  );
+                },
+                childCount: _playerController.songs.length,
               ),
-            ],
-          ),
-        ));
+            ),
+          ],
+        ),
+      );
+    });
   }
 }
 

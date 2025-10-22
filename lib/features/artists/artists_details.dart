@@ -66,7 +66,6 @@ class _ArtistsDetailsViewState extends State<ArtistsDetailsView>
         collapsed: CollapsedPanel(
           panelController: _panelController,
           playerController: _playerController,
-          isDarkMode: isDarkMode,
         ),
         body: CustomScrollView(
           controller: _scrollController,
@@ -144,23 +143,12 @@ class _ArtistsDetailsViewState extends State<ArtistsDetailsView>
                       _artistController.playArtistSongs(widget.artist.id),
                   icon: Icon(
                     Icons.play_arrow,
-                    color: isDarkMode
-                        ? AppTheme.nowPlayingDark
-                        : AppTheme.nowPlayingLight,
                   ),
                   label: Text(
                     'Play All',
-                    style: TextStyle(
-                      color: isDarkMode
-                          ? AppTheme.nowPlayingDark
-                          : AppTheme.nowPlayingLight,
-                    ),
+                    style: TextStyle(),
                   ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: isDarkMode
-                        ? AppTheme.playerControlsDark
-                        : AppTheme.playerControlsLight,
-                  ),
+                  style: ElevatedButton.styleFrom(),
                 ),
               ],
             ),
@@ -175,10 +163,10 @@ class _ArtistsDetailsViewState extends State<ArtistsDetailsView>
       return SliverFillRemaining(
         child: Center(
           child: CircularProgressIndicator(
-            color: isDarkMode
-                ? AppTheme.playerControlsDark
-                : AppTheme.playerControlsLight,
-          ),
+              // color: isDarkMode
+              //     ? AppTheme.playerControlsDark
+              //     : AppTheme.playerControlsLight,
+              ),
         ),
       );
     }
@@ -248,9 +236,9 @@ class _SongListItem extends StatelessWidget {
           playerController.favoriteSongs.contains(song.id)
               ? Icons.favorite
               : Icons.favorite_border,
-          color: playerController.favoriteSongs.contains(song.id)
-              ? AppTheme.playerControlsDark
-              : null,
+          // color: playerController.favoriteSongs.contains(song.id)
+          //     ? AppTheme.playerControlsDark
+          //     : null,
         ),
         onPressed: () => playerController.toggleFavorite(song.id),
       ),

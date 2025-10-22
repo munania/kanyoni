@@ -3,6 +3,8 @@ import 'package:get/get.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:kanyoni/controllers/base_controller.dart';
 import 'package:kanyoni/features/settings/behavior_settings.dart';
+import 'package:kanyoni/features/settings/theme_settings.dart';
+import 'package:kanyoni/utils/theme/theme.dart';
 
 class SettingsView extends StatefulWidget {
   const SettingsView({super.key});
@@ -25,23 +27,18 @@ class _SettingsViewState extends State<SettingsView> {
         child: ListView(
           children: [
             ListTile(
-              title: const Text('Dark Mode'),
-              trailing: Obx(() {
-                return Switch(
-                  value: baseController.isDarkModeEnabled.value,
-                  onChanged: (value) {
-                    baseController.toggleDarkMode(value);
-                  },
-                );
-              }),
-            ),
-            const Divider(),
-            ListTile(
               leading: const Icon(Iconsax.activity),
               title: const Text('Behavior'),
               subtitle: const Text('Customize app behavior'),
               onTap: () {
                 Get.to(() => const BehaviorSettingsScreen());
+              },
+            ),
+            ListTile(
+              leading: const Icon(Iconsax.color_swatch),
+              title: Text('Theme Settings', style: AppTheme.bodyLarge),
+              onTap: () {
+                Get.to(() => ThemeSettingsView());
               },
             ),
           ],

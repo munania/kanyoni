@@ -6,20 +6,19 @@ import '../../utils/theme/theme.dart';
 
 class GenreCard extends StatelessWidget {
   final GenreModel genre;
-  final bool isDarkMode;
   final VoidCallback onTap;
 
   const GenreCard({
     super.key,
     required this.genre,
-    required this.isDarkMode,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
     return Card(
-      color: isDarkMode ? AppTheme.nowPlayingDark : AppTheme.nowPlayingLight,
       margin: const EdgeInsets.only(bottom: 12),
       elevation: 0,
       shape: RoundedRectangleBorder(
@@ -46,11 +45,11 @@ class GenreCard extends StatelessWidget {
                     size: 500,
                     artworkQuality: FilterQuality.high,
                     nullArtworkWidget: Container(
-                      color: isDarkMode ? Colors.grey[800] : Colors.grey[300],
+                      color: Theme.of(context).highlightColor,
                       child: Icon(
                         Iconsax.user,
                         size: 30,
-                        color: Colors.grey,
+                        color: Theme.of(context).primaryColor,
                       ),
                     ),
                   ),

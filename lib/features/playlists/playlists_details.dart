@@ -58,7 +58,6 @@ class _PlaylistDetailsViewState extends State<PlaylistDetailsView>
         collapsed: CollapsedPanel(
           panelController: _panelController,
           playerController: _playerController,
-          isDarkMode: isDarkMode,
         ),
         body: CustomScrollView(
           controller: _scrollController,
@@ -144,23 +143,12 @@ class _PlaylistDetailsViewState extends State<PlaylistDetailsView>
                   ),
                   icon: Icon(
                     Icons.play_arrow,
-                    color: isDarkMode
-                        ? AppTheme.nowPlayingDark
-                        : AppTheme.nowPlayingLight,
                   ),
                   label: Text(
                     'Play All',
-                    style: TextStyle(
-                      color: isDarkMode
-                          ? AppTheme.nowPlayingDark
-                          : AppTheme.nowPlayingLight,
-                    ),
+                    style: TextStyle(),
                   ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: isDarkMode
-                        ? AppTheme.playerControlsDark
-                        : AppTheme.playerControlsLight,
-                  ),
+                  style: ElevatedButton.styleFrom(),
                 ),
               ],
             ),

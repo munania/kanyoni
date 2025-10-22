@@ -53,9 +53,6 @@ class _GenreViewState extends State<GenreView>
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
     final indexBarDecoration = BoxDecoration(
-      color: isDarkMode
-          ? Colors.grey[900]!.withAlpha(204)
-          : Colors.grey[100]!.withAlpha(204),
       borderRadius: BorderRadius.circular(20),
     );
 
@@ -76,56 +73,58 @@ class _GenreViewState extends State<GenreView>
       color: Theme.of(context).primaryColor,
     );
 
-    return Obx(() {
-      final genreBeans = genreController.genres
-          .map((genre) => GenreBean(genre))
-          .toList()
-        ..sort((a, b) =>
-            a.genre.genre.toLowerCase().compareTo(b.genre.genre.toLowerCase()));
+    return Scaffold(
+      body: Obx(() {
+        final genreBeans = genreController.genres
+            .map((genre) => GenreBean(genre))
+            .toList()
+          ..sort((a, b) => a.genre.genre
+              .toLowerCase()
+              .compareTo(b.genre.genre.toLowerCase()));
 
-      // Get only A-Z tags
-      final tags =
-          List.generate(26, (index) => String.fromCharCode(index + 65));
+        // Get only A-Z tags
+        final tags =
+            List.generate(26, (index) => String.fromCharCode(index + 65));
 
-      return SizedBox(
-        height: MediaQuery.of(context).size.height,
-        child: AzListView(
-          padding:
-              const EdgeInsets.only(right: 40, left: 16, top: 16, bottom: 16),
-          data: genreBeans,
-          itemCount: genreBeans.length,
-          indexBarItemHeight: MediaQuery.of(context).size.height / 38,
-          itemBuilder: (context, index) {
-            final genreBean = genreBeans[index];
-            return GenreCard(
-              genre: genreBean.genre,
-              isDarkMode: isDarkMode,
-              onTap: () => Get.to(
-                () => GenreDetailsView(genre: genreBean.genre),
-                transition: Transition.cupertino,
-                duration: const Duration(milliseconds: 300),
+        return SizedBox(
+          height: MediaQuery.of(context).size.height,
+          child: AzListView(
+            padding:
+                const EdgeInsets.only(right: 40, left: 16, top: 16, bottom: 16),
+            data: genreBeans,
+            itemCount: genreBeans.length,
+            indexBarItemHeight: MediaQuery.of(context).size.height / 38,
+            itemBuilder: (context, index) {
+              final genreBean = genreBeans[index];
+              return GenreCard(
+                genre: genreBean.genre,
+                onTap: () => Get.to(
+                  () => GenreDetailsView(genre: genreBean.genre),
+                  transition: Transition.cupertino,
+                  duration: const Duration(milliseconds: 300),
+                ),
+              );
+            },
+            indexBarData: tags,
+            // Use only A-Z tags
+            indexBarOptions: IndexBarOptions(
+              needRebuild: true,
+              decoration: indexBarDecoration,
+              indexHintDecoration: indexHintDecoration,
+              indexHintAlignment: Alignment.centerRight,
+              indexHintOffset: const Offset(-20, 0),
+              indexHintTextStyle: const TextStyle(
+                color: Colors.white,
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
               ),
-            );
-          },
-          indexBarData: tags,
-          // Use only A-Z tags
-          indexBarOptions: IndexBarOptions(
-            needRebuild: true,
-            decoration: indexBarDecoration,
-            indexHintDecoration: indexHintDecoration,
-            indexHintAlignment: Alignment.centerRight,
-            indexHintOffset: const Offset(-20, 0),
-            indexHintTextStyle: const TextStyle(
-              color: Colors.white,
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
+              textStyle: indexBarTextStyle,
+              selectTextStyle: indexBarSelectedTextStyle,
             ),
-            textStyle: indexBarTextStyle,
-            selectTextStyle: indexBarSelectedTextStyle,
+            physics: const BouncingScrollPhysics(),
           ),
-          physics: const BouncingScrollPhysics(),
-        ),
-      );
-    });
+        );
+      }),
+    );
   }
 }

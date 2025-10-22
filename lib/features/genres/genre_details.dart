@@ -270,7 +270,6 @@ class _FavoriteButton extends StatelessWidget {
       return IconButton(
         icon: Icon(
           isFavorite ? Icons.favorite : Icons.favorite_border,
-          color: isFavorite ? AppTheme.playerControlsDark : null,
         ),
         onPressed: () => playerController.toggleFavorite(song.id),
       );
@@ -295,20 +294,12 @@ class _PlayAllButton extends StatelessWidget {
       onPressed: () => genreController.playGenreSongs(genre.id),
       icon: Icon(
         Icons.play_arrow,
-        color: isDarkMode ? AppTheme.nowPlayingDark : AppTheme.nowPlayingLight,
       ),
       label: Text(
         'Play All',
-        style: TextStyle(
-          color:
-              isDarkMode ? AppTheme.nowPlayingDark : AppTheme.nowPlayingLight,
-        ),
+        style: TextStyle(),
       ),
-      style: ElevatedButton.styleFrom(
-        backgroundColor: isDarkMode
-            ? AppTheme.playerControlsDark
-            : AppTheme.playerControlsLight,
-      ),
+      style: ElevatedButton.styleFrom(),
     );
   }
 }

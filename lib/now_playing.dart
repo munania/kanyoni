@@ -11,18 +11,16 @@ import 'package:on_audio_query_forked/on_audio_query.dart';
 import 'package:sliding_up_panel/sliding_up_panel.dart';
 
 import '../../utils/theme/theme.dart';
+import 'features/lyrics/lyrics.dart';
 import 'features/songDetails/song_details.dart';
-import 'lyrics/lyrics.dart';
 
 class CollapsedPanel extends StatelessWidget {
   final PlayerController playerController;
   final PanelController panelController;
-  final bool isDarkMode;
 
   const CollapsedPanel({
     super.key,
     required this.playerController,
-    required this.isDarkMode,
     required this.panelController,
   });
 
@@ -54,61 +52,57 @@ class CollapsedPanel extends StatelessWidget {
         }
 
         final currentSong = playlist[index];
-        final backgroundColor =
-            isDarkMode ? AppTheme.nowPlayingDark : AppTheme.nowPlayingLight;
 
-        return Container(
-          decoration: BoxDecoration(
-            color: backgroundColor,
-            borderRadius: const BorderRadius.vertical(
-              top: Radius.circular(AppTheme.cornerRadius),
+        return Scaffold(
+          body: Container(
+            decoration: BoxDecoration(
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(AppTheme.cornerRadius),
+              ),
             ),
-          ),
-          child: Row(
-            children: [
-              Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: QueryArtworkWidget(
-                  id: currentSong.id,
-                  type: ArtworkType.AUDIO,
-                  quality: 100,
-                  artworkQuality: FilterQuality.high,
-                  nullArtworkWidget: Icon(
-                    Iconsax.music,
+            child: Row(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: QueryArtworkWidget(
+                    id: currentSong.id,
+                    type: ArtworkType.AUDIO,
+                    quality: 100,
+                    artworkQuality: FilterQuality.high,
+                    nullArtworkWidget: Icon(
+                      Iconsax.music,
+                      size: 50,
+                    ),
                     size: 50,
-                    color: isDarkMode
-                        ? AppTheme.playerControlsDark
-                        : AppTheme.playerControlsLight,
                   ),
-                  size: 50,
                 ),
-              ),
-              Expanded(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      currentSong.title,
-                      style: AppTheme.bodyLarge
-                          .copyWith(fontWeight: FontWeight.bold),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    Text(
-                      currentSong.artist ?? 'Unknown Artist',
-                      style: AppTheme.bodyMedium,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
+                Expanded(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        currentSong.title,
+                        style: AppTheme.bodyLarge
+                            .copyWith(fontWeight: FontWeight.bold),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      Text(
+                        currentSong.artist ?? 'Unknown Artist',
+                        style: AppTheme.bodyMedium,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              MediaControls(
-                playerController: playerController,
-                isExpanded: false,
-              ),
-            ],
+                MediaControls(
+                  playerController: playerController,
+                  isExpanded: false,
+                ),
+              ],
+            ),
           ),
         );
       }),
@@ -126,8 +120,6 @@ class NowPlayingPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDarkMode = THelperFunctions.isDarkMode(context);
-
     return Obx(() {
       if (playerController.songs.isEmpty ||
           playerController.currentSongIndex.value >=
@@ -137,47 +129,46 @@ class NowPlayingPanel extends StatelessWidget {
 
       final currentSong = playerController
           .currentPlaylist[playerController.currentSongIndex.value];
-      final backgroundColor =
-          isDarkMode ? AppTheme.nowPlayingDark : AppTheme.nowPlayingLight;
 
-      return Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: backgroundColor,
-          borderRadius: const BorderRadius.vertical(
-            top: Radius.circular(AppTheme.cornerRadius),
-          ),
-        ),
-        child: Column(
-          children: [
-            // const DragHandle(),
-            Expanded(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  GestureDetector(
-                      onTap: () {
-                        Get.to(
-                          () => SongDetails(currentSong: currentSong),
-                        );
-                      },
-                      child: ArtworkDisplay(song: currentSong)),
-                  SongInfo(song: currentSong),
-                  ProgressControls(
-                    playerController: playerController,
-                  ),
-                  MediaControls(
-                    playerController: playerController,
-                    isExpanded: true,
-                  ),
-                  ExtraControls(
-                    playerController: playerController,
-                    songId: currentSong.id,
-                  ),
-                ],
-              ),
+      return Scaffold(
+        body: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            borderRadius: const BorderRadius.vertical(
+              top: Radius.circular(AppTheme.cornerRadius),
             ),
-          ],
+          ),
+          child: Column(
+            children: [
+              // const DragHandle(),
+              Expanded(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    GestureDetector(
+                        onTap: () {
+                          Get.to(
+                            () => SongDetails(currentSong: currentSong),
+                          );
+                        },
+                        child: ArtworkDisplay(song: currentSong)),
+                    SongInfo(song: currentSong),
+                    ProgressControls(
+                      playerController: playerController,
+                    ),
+                    MediaControls(
+                      playerController: playerController,
+                      isExpanded: true,
+                    ),
+                    ExtraControls(
+                      playerController: playerController,
+                      songId: currentSong.id,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       );
     });
@@ -211,8 +202,6 @@ class ArtworkDisplay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDarkMode = THelperFunctions.isDarkMode(context);
-
     return Container(
       width: 300,
       height: 300,
@@ -235,9 +224,6 @@ class ArtworkDisplay extends StatelessWidget {
         nullArtworkWidget: Icon(
           Iconsax.music,
           size: 150,
-          color: isDarkMode
-              ? AppTheme.playerControlsDark
-              : AppTheme.playerControlsLight,
         ),
       ),
     );
@@ -306,13 +292,7 @@ class ProgressControls extends StatelessWidget {
               total: positionData?.duration ?? Duration.zero,
               onSeek: playerController.audioPlayer.seek,
               baseBarColor: isDarkMode ? Colors.grey[700] : Colors.grey[400],
-              progressBarColor: isDarkMode
-                  ? AppTheme.nowPlayingLight
-                  : AppTheme.nowPlayingDark,
               bufferedBarColor: Colors.transparent,
-              thumbColor: isDarkMode
-                  ? AppTheme.nowPlayingLight
-                  : AppTheme.nowPlayingDark,
               thumbGlowRadius: 20.0,
               timeLabelType: TimeLabelType.totalTime,
               timeLabelTextStyle: AppTheme.bodyMedium,
@@ -336,11 +316,6 @@ class MediaControls extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDarkMode = THelperFunctions.isDarkMode(context);
-
-    final Color iconColor =
-        isDarkMode ? AppTheme.playerControlsDark : AppTheme.playerControlsLight;
-
     if (!isExpanded) {
       return Row(
         mainAxisSize: MainAxisSize.min,
@@ -348,7 +323,7 @@ class MediaControls extends StatelessWidget {
           IconButton(
             icon: const Icon(Iconsax.previous),
             onPressed: playerController.playPrevious,
-            color: iconColor,
+            color: Theme.of(context).primaryColor,
           ),
           Obx(() => IconButton(
                 icon: Icon(
@@ -357,12 +332,12 @@ class MediaControls extends StatelessWidget {
                       : Iconsax.play,
                 ),
                 onPressed: playerController.togglePlayPause,
-                color: iconColor,
+                color: Theme.of(context).primaryColor,
               )),
           IconButton(
             icon: const Icon(Iconsax.next),
             onPressed: playerController.playNext,
-            color: iconColor,
+            color: Theme.of(context).primaryColor,
           ),
         ],
       );
@@ -375,16 +350,12 @@ class MediaControls extends StatelessWidget {
         IconButton(
           icon: Obx(() => Icon(
                 playerController.isShuffle.value
-                    ? Icons.shuffle_on_outlined
-                    : Icons.shuffle,
-                color: playerController.isShuffle.value
-                    ? iconColor
-                    : (isDarkMode
-                        ? AppTheme.nowPlayingLight
-                        : AppTheme.nowPlayingDark),
+                    ? Icons.shuffle_on_rounded
+                    : Iconsax.shuffle,
               )),
           onPressed: playerController.toggleShuffle,
           iconSize: 30,
+          color: Theme.of(context).primaryColor,
         ),
 
         /// Previous Button
@@ -392,8 +363,7 @@ class MediaControls extends StatelessWidget {
           icon: const Icon(Iconsax.previous),
           onPressed: playerController.playPrevious,
           iconSize: 35,
-          color:
-              isDarkMode ? AppTheme.nowPlayingLight : AppTheme.nowPlayingDark,
+          color: Theme.of(context).primaryColor,
         ),
 
         /// Play/Pause Button
@@ -401,9 +371,6 @@ class MediaControls extends StatelessWidget {
           () => Container(
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: playerController.isPlaying.value
-                    ? AppTheme.nowPlayingDark // When playing
-                    : AppTheme.playerControlsDark, // When paused
               ),
               padding: const EdgeInsets.all(8),
               child: IconButton(
@@ -411,12 +378,10 @@ class MediaControls extends StatelessWidget {
                   playerController.isPlaying.value
                       ? Iconsax.pause //Pause icon
                       : Iconsax.play, // Play icon
-                  color: playerController.isPlaying.value
-                      ? AppTheme.nowPlayingLight // When playing
-                      : AppTheme.nowPlayingDark,
                 ),
                 onPressed: playerController.togglePlayPause,
                 iconSize: 40,
+                color: Theme.of(context).primaryColor,
               )),
         ),
 
@@ -425,22 +390,17 @@ class MediaControls extends StatelessWidget {
           icon: const Icon(Iconsax.next),
           onPressed: playerController.playNext,
           iconSize: 35,
-          color:
-              isDarkMode ? AppTheme.nowPlayingLight : AppTheme.nowPlayingDark,
+          color: Theme.of(context).primaryColor,
         ),
 
         /// Repeat Button
         IconButton(
           icon: Obx(() => Icon(
                 _getRepeatIcon(playerController.repeatMode.value),
-                color: playerController.repeatMode.value != RepeatMode.off
-                    ? AppTheme.playerControlsDark
-                    : (isDarkMode
-                        ? AppTheme.nowPlayingLight
-                        : AppTheme.nowPlayingDark),
               )),
           onPressed: playerController.toggleRepeatMode,
           iconSize: 30,
+          color: Theme.of(context).primaryColor,
         ),
       ],
     );
@@ -449,11 +409,11 @@ class MediaControls extends StatelessWidget {
   IconData _getRepeatIcon(RepeatMode mode) {
     switch (mode) {
       case RepeatMode.off:
-        return Icons.repeat;
+        return Iconsax.repeat;
       case RepeatMode.one:
-        return Icons.repeat_one;
+        return Iconsax.repeate_one;
       case RepeatMode.all:
-        return Icons.repeat_on;
+        return Icons.repeat_on_rounded;
     }
   }
 }
@@ -483,6 +443,7 @@ class ExtraControls extends StatelessWidget {
             icon: Icon(
               Iconsax.book,
               size: iconSize,
+              color: Theme.of(context).primaryColor,
             )),
         IconButton(
           icon: Obx(() {
@@ -495,6 +456,7 @@ class ExtraControls extends StatelessWidget {
               return Icon(
                 Icons.favorite_border,
                 size: iconSize, // Default non-favourite icon
+                color: Theme.of(context).primaryColor,
               );
             }
 
@@ -505,8 +467,9 @@ class ExtraControls extends StatelessWidget {
                 playerController.favoriteSongs.contains(currentSong.id);
 
             return Icon(
-              isFavorite ? Icons.favorite : Icons.favorite_border,
+              isFavorite ? Iconsax.heart5 : Iconsax.heart,
               size: iconSize,
+              color: Theme.of(context).primaryColor,
             );
           }),
           onPressed: () {
@@ -528,8 +491,9 @@ class ExtraControls extends StatelessWidget {
           // playlistCtrl is the instance from GetBuilder
           return PopupMenuButton<String>(
             icon: Icon(
-              Icons.playlist_add,
+              Iconsax.add_circle,
               size: iconSize,
+              color: Theme.of(context).primaryColor,
             ),
             onSelected: (String value) async {
               // Ensure current song is available (using playerController from ExtraControls)
@@ -652,8 +616,9 @@ class ExtraControls extends StatelessWidget {
         }),
         IconButton(
           icon: Icon(
-            Icons.equalizer,
+            Icons.equalizer_rounded,
             size: iconSize,
+            color: Theme.of(context).primaryColor,
           ),
           onPressed: () {
             // TODO: Implement equalizer
@@ -666,8 +631,9 @@ class ExtraControls extends StatelessWidget {
         ),
         IconButton(
           icon: Icon(
-            Icons.timer,
+            Icons.timer_rounded,
             size: iconSize,
+            color: Theme.of(context).primaryColor,
           ),
           onPressed: () {
             // TODO: Implement sleep timer

@@ -21,7 +21,6 @@ class PlaylistSongCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      color: isDarkMode ? AppTheme.nowPlayingDark : AppTheme.nowPlayingLight,
       elevation: 0,
       margin: const EdgeInsets.only(bottom: 12),
       shape: RoundedRectangleBorder(

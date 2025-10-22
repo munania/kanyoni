@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:iconsax/iconsax.dart';
 import 'package:kanyoni/controllers/player_controller.dart';
 import 'package:on_audio_query_forked/on_audio_query.dart'; // Ensure this is imported
 
@@ -11,9 +12,6 @@ class FavoritesView extends StatelessWidget {
     final PlayerController playerController = Get.find();
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Favorites'),
-      ),
       body: Obx(() {
         if (playerController.favoriteSongs.isEmpty) {
           return const Center(
@@ -61,15 +59,19 @@ class FavoritesView extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     IconButton(
-                      icon: const Icon(Icons.play_arrow),
+                      icon: Icon(
+                        Iconsax.play,
+                        color: Theme.of(context).primaryColor,
+                      ),
                       onPressed: () {
                         playerController.playSong(song);
                       },
                     ),
                     IconButton(
                       icon: playerController.favoriteSongs.contains(song.id)
-                          ? const Icon(Icons.favorite, color: Colors.red)
-                          : const Icon(Icons.favorite_border),
+                          ? Icon(Icons.favorite,
+                              color: Theme.of(context).primaryColor)
+                          : Icon(Iconsax.heart),
                       onPressed: () {
                         playerController.toggleFavorite(song.id);
                       },
