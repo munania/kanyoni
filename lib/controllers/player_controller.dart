@@ -6,6 +6,7 @@ import 'package:just_audio/just_audio.dart';
 import 'package:kanyoni/utils/services/shared_prefs_service.dart';
 import 'package:on_audio_query_forked/on_audio_query.dart';
 import 'package:rxdart/rxdart.dart';
+import 'dart:io' show Platform;
 
 import 'base_controller.dart';
 
@@ -33,6 +34,26 @@ class PlayerController extends BaseController {
   var listScrollOffset = 0.0.obs; // For tracking list scroll position
   var currentSortType = SongSortType.DATE_ADDED.obs;
 
+  // Computed getter for the currently active song
+  SongModel? get activeSong {
+    if (currentPlaylist.isEmpty ||
+        currentSongIndex.value < 0 ||
+        currentSongIndex.value >= currentPlaylist.length) {
+      return null;
+    }
+    return currentPlaylist[currentSongIndex.value];
+  }
+
+  // Equalizer Observables
+  var equalizerEnabled = false.obs;
+  var isEqualizerInitialized = false.obs;
+  var equalizerBands = <int>[].obs;
+  var equalizerCenterFreqs = <int>[].obs;
+  var equalizerPresets = <String>[].obs;
+  var currentPreset = ''.obs;
+  var minBandLevel = 0.0.obs;
+  var maxBandLevel = 0.0.obs;
+
   Future<int?> get lastAppCloseTime async =>
       (await prefs).getInt(kLastAppCloseTimeKey);
   List<SongModel>? originalPlaylist;
@@ -48,6 +69,14 @@ class PlayerController extends BaseController {
     super.onInit();
     _initializePreferences();
     _initializeAudioPlayer();
+
+    // Initialize equalizer when audio session ID is available
+    audioPlayer.androidAudioSessionIdStream.listen((sessionId) {
+      if (sessionId != null) {
+        _initializeEqualizer(sessionId);
+      }
+    });
+
     // fetchAllSongs(); // Removed call from here
   }
 
@@ -633,6 +662,124 @@ class PlayerController extends BaseController {
           blacklistedFolders.any((folder) => song.data.startsWith(folder));
       return isLongEnough && !isInBlacklistedFolder;
     }).toList();
+  }
+
+  // Equalizer Methods
+  Future<void> _initializeEqualizer(int sessionId) async {
+    if (!Platform.isAndroid || androidEqualizer == null) return;
+
+    try {
+      await androidEqualizer!.setEnabled(true);
+
+      final parameters = await androidEqualizer!.parameters;
+      minBandLevel.value = parameters.minDecibels;
+      maxBandLevel.value = parameters.maxDecibels;
+
+      equalizerCenterFreqs.clear();
+      equalizerBands.clear();
+
+      for (var band in parameters.bands) {
+        equalizerCenterFreqs.add(band.centerFrequency.toInt());
+        equalizerBands.add(band.gain.toInt());
+
+        band.gainStream.listen((gain) {
+          if (equalizerBands.length > band.index) {
+            equalizerBands[band.index] = gain.toInt();
+            equalizerBands.refresh();
+          }
+        });
+      }
+
+      equalizerPresets.value = ['Custom', 'Flat', 'Bass Boost', 'Treble Boost'];
+      currentPreset.value = 'Custom';
+      equalizerEnabled.value = true;
+      isEqualizerInitialized.value = true;
+
+      if (kDebugMode) {
+        print('Equalizer initialized with ${parameters.bands.length} bands');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error initializing equalizer: $e');
+      }
+      isEqualizerInitialized.value = false;
+    }
+  }
+
+  Future<void> toggleEqualizer(bool enabled) async {
+    if (!isEqualizerInitialized.value || androidEqualizer == null) return;
+
+    try {
+      await androidEqualizer!.setEnabled(enabled);
+      equalizerEnabled.value = enabled;
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error toggling equalizer: $e');
+      }
+    }
+  }
+
+  Future<void> setBandLevel(int bandId, int level) async {
+    if (!isEqualizerInitialized.value || androidEqualizer == null) return;
+
+    try {
+      final parameters = await androidEqualizer!.parameters;
+      if (bandId < parameters.bands.length) {
+        await parameters.bands[bandId].setGain(level.toDouble());
+        currentPreset.value = 'Custom';
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error setting band level: $e');
+      }
+    }
+  }
+
+  Future<void> setPreset(String presetName) async {
+    if (!isEqualizerInitialized.value || androidEqualizer == null) return;
+
+    try {
+      final parameters = await androidEqualizer!.parameters;
+
+      List<double> gains;
+      switch (presetName) {
+        case 'Flat':
+          gains = List.filled(parameters.bands.length, 0.0);
+          break;
+        case 'Bass Boost':
+          gains = List.generate(parameters.bands.length, (index) {
+            if (index < 2) return maxBandLevel.value * 0.6;
+            return 0.0;
+          });
+          break;
+        case 'Treble Boost':
+          gains = List.generate(parameters.bands.length, (index) {
+            if (index > parameters.bands.length - 3)
+              return maxBandLevel.value * 0.6;
+            return 0.0;
+          });
+          break;
+        case 'Custom':
+        default:
+          return;
+      }
+
+      for (int i = 0; i < parameters.bands.length && i < gains.length; i++) {
+        await parameters.bands[i].setGain(gains[i]);
+      }
+
+      await Future.delayed(const Duration(milliseconds: 100));
+      equalizerBands.refresh();
+      currentPreset.value = presetName;
+
+      if (kDebugMode) {
+        print('Applied preset: $presetName');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error setting preset: $e');
+      }
+    }
   }
 }
 

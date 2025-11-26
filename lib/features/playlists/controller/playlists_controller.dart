@@ -13,9 +13,8 @@ class PlaylistController extends BaseController {
   static const String _appPlaylistIdentifier = '[kanyoni]';
   bool _isInitialized = false;
 
-
-  Future<void> fetchPlaylists() async {
-    if (_isInitialized) return;
+  Future<void> fetchPlaylists({bool force = false}) async {
+    if (_isInitialized && !force) return;
 
     try {
       final loadedPlaylists = await audioQuery.queryPlaylists(
@@ -54,7 +53,20 @@ class PlaylistController extends BaseController {
         orderType: OrderType.ASC_OR_SMALLER,
       );
 
-      _playlistSongsCache[playlistId] = songs.cast<SongModel>();
+      // Map playlist songs to system songs to ensure we have full metadata and correct IDs
+      final mappedSongs = songs.map((playlistSong) {
+        // Try to find the song in the system songs list
+        final systemSong = _playerController.songs.firstWhere(
+          (s) => s.id == playlistSong.id,
+          orElse: () => _playerController.songs.firstWhere(
+            (s) => _areSongsMatching(s, playlistSong),
+            orElse: () => playlistSong,
+          ),
+        );
+        return systemSong;
+      }).toList();
+
+      _playlistSongsCache[playlistId] = mappedSongs;
     } catch (e) {
       _handleError('Loading songs for playlist $playlistId', e);
     }
@@ -72,46 +84,64 @@ class PlaylistController extends BaseController {
         _playlistSongsCache[playlistId]!.isNotEmpty) {
       return; // Already loaded or cached
     }
-    try {
-      final songs = await audioQuery
-          .queryAudiosFrom(
-            AudiosFromType.PLAYLIST,
-            playlistId,
-            orderType: OrderType.ASC_OR_SMALLER, // Or your preferred sort order
-          )
-          .then((value) => value.cast<SongModel>());
-
-      _playlistSongsCache[playlistId] = songs;
-      _playlistSongsCache
-          .refresh(); // Notify if UI is observing this map directly
-    } catch (e) {
-      _handleError('Loading songs for playlist $playlistId', e);
-    }
+    await _loadPlaylistSongs(playlistId);
   }
 
-  Future<void> createPlaylist(String name) async {
+  Future<PlaylistModel?> createPlaylist(String name) async {
     try {
       final result =
           await audioQuery.createPlaylist("$name $_appPlaylistIdentifier");
       if (result) {
-        await fetchPlaylists();
+        await fetchPlaylists(force: true);
         _showSuccess('Playlist created successfully');
+        return playlists.firstWhereOrNull((p) => p.playlist == name);
       }
     } catch (e) {
       _handleError('Creating playlist', e);
     }
+    return null;
   }
 
   Future<void> deletePlaylist(int playlistId) async {
     try {
+      // Optimistic update
+      playlists.removeWhere((p) => p.id == playlistId);
+
       final result = await audioQuery.removePlaylist(playlistId);
       if (result) {
-        playlists.removeWhere((p) => p.id == playlistId);
-        _playlistSongsCache.remove(playlistId);
+        // Wait for OS to update
+        await Future.delayed(const Duration(milliseconds: 500));
+        await fetchPlaylists(force: true);
         _showSuccess('Playlist deleted successfully');
+      } else {
+        // Revert if failed (fetch will restore it)
+        await fetchPlaylists(force: true);
+        _showSuccess('Failed to delete playlist');
       }
     } catch (e) {
       _handleError('Deleting playlist', e);
+    }
+  }
+
+  Future<void> clearAllPlaylists() async {
+    try {
+      // Optimistic clear
+      final playlistsToDelete = List<PlaylistModel>.from(playlists);
+      playlists.clear();
+      _playlistSongsCache.clear();
+
+      for (var playlist in playlistsToDelete) {
+        await audioQuery.removePlaylist(playlist.id);
+      }
+
+      // Wait for OS to update
+      await Future.delayed(const Duration(milliseconds: 500));
+      await fetchPlaylists(force: true);
+      _showSuccess('All playlists cleared successfully');
+    } catch (e) {
+      // Revert if failed (fetch will restore it)
+      await fetchPlaylists(force: true);
+      _handleError('Clearing all playlists', e);
     }
   }
 
@@ -209,10 +239,9 @@ class PlaylistController extends BaseController {
   }
 
   bool _areSongsMatching(SongModel a, SongModel b) {
-    return a.title == b.title &&
-        a.artist == b.artist &&
-        a.duration == b.duration &&
-        a.data == b.data;
+    return a.title.trim() == b.title.trim() &&
+        (a.artist ?? '<unknown>') == (b.artist ?? '<unknown>') &&
+        a.duration == b.duration;
   }
 
   List<SongModel> getPlaylistSongs(int playlistId) {

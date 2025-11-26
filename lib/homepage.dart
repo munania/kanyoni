@@ -173,22 +173,76 @@ class _HomePageState extends State<HomePage>
   }
 
   Widget _buildTabBar() {
-    return SizedBox(
-      height: kToolbarHeight - 15,
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
+    return Container(
+      height: 60,
+      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+      decoration: BoxDecoration(
+        color: isDarkMode ? Colors.grey[900] : Colors.grey[100],
+        borderRadius: BorderRadius.circular(16),
+      ),
       child: TabBar(
         controller: _tabController,
-        indicatorPadding: const EdgeInsets.symmetric(horizontal: 20),
         isScrollable: true,
         tabAlignment: TabAlignment.start,
+        dividerColor: Colors.transparent,
+        indicator: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          color: Theme.of(context).primaryColor.withValues(alpha: 0.15),
+        ),
+        indicatorSize: TabBarIndicatorSize.tab,
+        indicatorPadding:
+            const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+        labelColor: Theme.of(context).primaryColor,
+        unselectedLabelColor: isDarkMode ? Colors.grey[400] : Colors.grey[600],
         labelStyle: const TextStyle(
-          fontSize: 16,
+          fontSize: 15,
           fontWeight: FontWeight.w600,
+          letterSpacing: 0.3,
         ),
         unselectedLabelStyle: const TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.w400,
+          fontSize: 15,
+          fontWeight: FontWeight.w500,
+          letterSpacing: 0.3,
         ),
-        tabs: _tabs.map((tab) => Tab(text: tab.title)).toList(),
+        overlayColor: WidgetStateProperty.resolveWith<Color?>(
+          (Set<WidgetState> states) {
+            if (states.contains(WidgetState.hovered)) {
+              return Theme.of(context).primaryColor.withValues(alpha: 0.05);
+            }
+            if (states.contains(WidgetState.pressed)) {
+              return Theme.of(context).primaryColor.withValues(alpha: 0.1);
+            }
+            return null;
+          },
+        ),
+        tabs: _tabs.map((tab) {
+          final isSelected = _tabController.index == _tabs.indexOf(tab);
+          return Tab(
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeInOut,
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  AnimatedScale(
+                    scale: isSelected ? 1.1 : 1.0,
+                    duration: const Duration(milliseconds: 300),
+                    curve: Curves.easeInOut,
+                    child: Icon(
+                      tab.icon,
+                      size: 20,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(tab.title),
+                ],
+              ),
+            ),
+          );
+        }).toList(),
       ),
     );
   }

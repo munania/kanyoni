@@ -18,69 +18,90 @@ class ArtistCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
-    return Card(
-      elevation: 0,
-      margin: const EdgeInsets.only(bottom: 12),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(AppTheme.cornerRadius),
-      ),
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(AppTheme.cornerRadius),
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Row(
-            children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(AppTheme.cornerRadius),
-                child: SizedBox(
-                  width: 60,
-                  height: 60,
-                  child: QueryArtworkWidget(
-                    id: artist.id,
-                    type: ArtworkType.ARTIST,
-                    quality: 100,
-                    size: 500,
-                    artworkQuality: FilterQuality.high,
-                    nullArtworkWidget: Container(
-                      color: Theme.of(context).highlightColor,
-                      child: Icon(
-                        Iconsax.user,
-                        size: 30,
-                        color: Theme.of(context).primaryColor,
+        child: Container(
+          decoration: BoxDecoration(
+            color: isDarkMode
+                ? Colors.white.withValues(alpha: 0.05)
+                : Colors.white.withValues(alpha: 0.6),
+            borderRadius: BorderRadius.circular(AppTheme.cornerRadius),
+            border: Border.all(
+              color: isDarkMode
+                  ? Colors.white.withValues(alpha: 0.05)
+                  : Colors.black.withValues(alpha: 0.02),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.05),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Row(
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(AppTheme.cornerRadius),
+                  child: SizedBox(
+                    width: 60,
+                    height: 60,
+                    child: QueryArtworkWidget(
+                      id: artist.id,
+                      type: ArtworkType.ARTIST,
+                      quality: 100,
+                      size: 500,
+                      artworkQuality: FilterQuality.high,
+                      nullArtworkWidget: Container(
+                        color: Theme.of(context)
+                            .highlightColor
+                            .withValues(alpha: 0.1),
+                        child: Icon(
+                          Iconsax.user,
+                          size: 30,
+                          color: Theme.of(context).primaryColor,
+                        ),
                       ),
                     ),
                   ),
                 ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      artist.artist,
-                      style: AppTheme.bodyLarge.copyWith(
-                        fontWeight: FontWeight.bold,
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        artist.artist,
+                        style: AppTheme.bodyLarge.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '${artist.numberOfTracks} songs',
-                      style: AppTheme.bodyMedium,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
+                      const SizedBox(height: 4),
+                      Text(
+                        '${artist.numberOfTracks} songs',
+                        style: AppTheme.bodyMedium.copyWith(
+                          color:
+                              isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              Icon(
-                Icons.chevron_right,
-                color: Colors.grey,
-              ),
-            ],
+                Icon(
+                  Icons.chevron_right,
+                  color: isDarkMode ? Colors.grey[600] : Colors.grey[400],
+                ),
+              ],
+            ),
           ),
         ),
       ),

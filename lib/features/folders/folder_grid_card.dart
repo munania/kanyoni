@@ -1,22 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:kanyoni/utils/theme/theme.dart';
-import 'package:on_audio_query_forked/on_audio_query.dart';
+import 'package:path/path.dart' as path;
 
-class AlbumCard extends StatelessWidget {
-  final AlbumModel album;
-
+class FolderGridCard extends StatelessWidget {
+  final String folderPath;
+  final int songCount;
   final VoidCallback onTap;
 
-  const AlbumCard({
+  const FolderGridCard({
     super.key,
-    required this.album,
+    required this.folderPath,
+    required this.songCount,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final folderName = path.basename(folderPath);
 
     return InkWell(
       onTap: onTap,
@@ -43,42 +45,34 @@ class AlbumCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Hero animation for smooth transition
-            Hero(
-              tag: 'album_${album.id}',
-              child: ClipRRect(
-                borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(AppTheme.cornerRadius),
+            // Folder Icon
+            AspectRatio(
+              aspectRatio: 1,
+              child: Container(
+                decoration: BoxDecoration(
+                  color:
+                      Theme.of(context).highlightColor.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.vertical(
+                    top: Radius.circular(AppTheme.cornerRadius),
+                  ),
                 ),
-                child: AspectRatio(
-                  aspectRatio: 1,
-                  child: QueryArtworkWidget(
-                    id: album.id,
-                    type: ArtworkType.ALBUM,
-                    quality: 100,
-                    size: 500,
-                    artworkQuality: FilterQuality.high,
-                    nullArtworkWidget: Container(
-                      color: Theme.of(context)
-                          .highlightColor
-                          .withValues(alpha: 0.1),
-                      child: Icon(
-                        Iconsax.music_square,
-                        size: 50,
-                        color: Theme.of(context).primaryColor,
-                      ),
-                    ),
+                child: Center(
+                  child: Icon(
+                    Iconsax.folder_25,
+                    size: 80,
+                    color: Theme.of(context).primaryColor,
                   ),
                 ),
               ),
             ),
+            // Folder Info
             Padding(
               padding: const EdgeInsets.all(12),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    album.album,
+                    folderName,
                     style: AppTheme.bodyLarge.copyWith(
                       fontWeight: FontWeight.bold,
                     ),
@@ -87,18 +81,9 @@ class AlbumCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    album.artist ?? 'Unknown Artist',
+                    '$songCount ${songCount == 1 ? 'song' : 'songs'}',
                     style: AppTheme.bodyMedium.copyWith(
                       color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '${album.numOfSongs} ${album.numOfSongs == 1 ? 'song' : 'songs'}',
-                    style: AppTheme.bodyMedium.copyWith(
-                      color: isDarkMode ? Colors.grey[500] : Colors.grey[500],
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,

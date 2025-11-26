@@ -7,7 +7,6 @@ import 'package:kanyoni/controllers/theme_controller.dart';
 import 'package:kanyoni/features/folders/controllers/folder_controller.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:sliding_up_panel/sliding_up_panel.dart';
 
 import 'controllers/media_player_handler.dart';
 import 'controllers/player_controller.dart';
@@ -15,7 +14,6 @@ import 'features/albums/controller/album_controller.dart';
 import 'features/artists/controller/artists_controller.dart';
 import 'features/genres/controller/genres_controller.dart';
 import 'features/playlists/controller/playlists_controller.dart';
-import 'now_playing.dart';
 import 'splash_screen.dart';
 import 'utils/theme/theme.dart';
 
@@ -54,11 +52,29 @@ void main() async {
 
 Future<bool> requestPermissions() async {
   // Request both permissions and return combined result
-  final storageGranted = await Permission.storage.request().isGranted;
-  final audioGranted = await Permission.audio.request().isGranted;
+  // For Android 13+, we need separate permissions for audio and images/video if needed.
+  // Permission.audio is generally for Android 13+ (API 33+).
+  // Permission.storage is for older versions.
 
-  if (storageGranted && audioGranted) {
-    debugPrint('All permissions granted');
+  Map<Permission, PermissionStatus> statuses = await [
+    Permission.storage,
+    Permission.audio,
+    // Add notification permission for Android 13+
+    Permission.notification,
+  ].request();
+
+  // Check if essential permissions are granted
+  // On Android 13+, storage might be permanently denied or restricted, but audio is what matters for music.
+  // On older Android, storage is key.
+
+  bool storageGranted = statuses[Permission.storage]?.isGranted ?? false;
+  bool audioGranted = statuses[Permission.audio]?.isGranted ?? false;
+
+  // Simple logic: if either is granted, we might be okay depending on OS version.
+  // But strictly, we want to ensure we can read files.
+
+  if (storageGranted || audioGranted) {
+    debugPrint('Permissions granted');
     return true;
   }
 
@@ -79,57 +95,9 @@ class MyApp extends StatelessWidget {
         debugShowCheckedModeBanner: false,
         theme: AppTheme.lightTheme(themeController),
         darkTheme: AppTheme.darkTheme(themeController),
-        themeMode:
-            themeController.isDarkMode.value ? ThemeMode.dark : ThemeMode.light,
+        themeMode: themeController.materialThemeMode,
         home: const SplashScreenPage(),
       );
     });
-  }
-}
-
-class AppLayout extends StatefulWidget {
-  final Widget child;
-
-  const AppLayout({
-    super.key,
-    required this.child,
-  });
-
-  @override
-  State<AppLayout> createState() => _AppLayoutState();
-}
-
-class _AppLayoutState extends State<AppLayout> {
-  late final PanelController
-      panelController; // Use late final for single initialization
-
-  @override
-  void initState() {
-    super.initState();
-    panelController = PanelController(); // Initialize once in state
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final playerController = Get.find<PlayerController>();
-
-    return Scaffold(
-      body: SlidingUpPanel(
-        controller: panelController,
-        minHeight: 70,
-        maxHeight: MediaQuery.of(context).size.height,
-        borderRadius: const BorderRadius.vertical(
-          top: Radius.circular(AppTheme.cornerRadius),
-        ),
-        panel: NowPlayingPanel(
-          playerController: playerController,
-        ),
-        collapsed: CollapsedPanel(
-          playerController: playerController,
-          panelController: panelController,
-        ),
-        body: widget.child,
-      ),
-    );
   }
 }

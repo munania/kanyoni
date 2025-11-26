@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:iconsax/iconsax.dart';
-import 'package:kanyoni/utils/theme/theme.dart';
 import 'package:on_audio_query_forked/on_audio_query.dart';
 
-class AlbumCard extends StatelessWidget {
-  final AlbumModel album;
+import '../../utils/theme/theme.dart';
 
+class ArtistGridCard extends StatelessWidget {
+  final ArtistModel artist;
   final VoidCallback onTap;
 
-  const AlbumCard({
+  const ArtistGridCard({
     super.key,
-    required this.album,
+    required this.artist,
     required this.onTap,
   });
 
@@ -43,42 +43,39 @@ class AlbumCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Hero animation for smooth transition
-            Hero(
-              tag: 'album_${album.id}',
+            // Artist Artwork
+            AspectRatio(
+              aspectRatio: 1,
               child: ClipRRect(
                 borderRadius: const BorderRadius.vertical(
                   top: Radius.circular(AppTheme.cornerRadius),
                 ),
-                child: AspectRatio(
-                  aspectRatio: 1,
-                  child: QueryArtworkWidget(
-                    id: album.id,
-                    type: ArtworkType.ALBUM,
-                    quality: 100,
-                    size: 500,
-                    artworkQuality: FilterQuality.high,
-                    nullArtworkWidget: Container(
-                      color: Theme.of(context)
-                          .highlightColor
-                          .withValues(alpha: 0.1),
-                      child: Icon(
-                        Iconsax.music_square,
-                        size: 50,
-                        color: Theme.of(context).primaryColor,
-                      ),
+                child: QueryArtworkWidget(
+                  id: artist.id,
+                  type: ArtworkType.ARTIST,
+                  quality: 100,
+                  size: 500,
+                  artworkQuality: FilterQuality.high,
+                  nullArtworkWidget: Container(
+                    color:
+                        Theme.of(context).highlightColor.withValues(alpha: 0.1),
+                    child: Icon(
+                      Iconsax.microphone,
+                      size: 60,
+                      color: Theme.of(context).primaryColor,
                     ),
                   ),
                 ),
               ),
             ),
+            // Artist Info
             Padding(
               padding: const EdgeInsets.all(12),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    album.album,
+                    artist.artist,
                     style: AppTheme.bodyLarge.copyWith(
                       fontWeight: FontWeight.bold,
                     ),
@@ -87,18 +84,9 @@ class AlbumCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    album.artist ?? 'Unknown Artist',
+                    '${artist.numberOfTracks} ${artist.numberOfTracks == 1 ? 'song' : 'songs'}',
                     style: AppTheme.bodyMedium.copyWith(
                       color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '${album.numOfSongs} ${album.numOfSongs == 1 ? 'song' : 'songs'}',
-                    style: AppTheme.bodyMedium.copyWith(
-                      color: isDarkMode ? Colors.grey[500] : Colors.grey[500],
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,

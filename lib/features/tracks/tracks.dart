@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:iconsax/iconsax.dart';
@@ -5,6 +7,7 @@ import 'package:kanyoni/controllers/player_controller.dart';
 import 'package:on_audio_query_forked/on_audio_query.dart';
 
 import '../../utils/theme/theme.dart';
+import '../now_playing/now_playing_widgets.dart';
 
 class TracksView extends StatelessWidget {
   const TracksView({super.key});
@@ -27,7 +30,8 @@ class TracksList extends StatefulWidget {
 class _TracksListState extends State<TracksList>
     with AutomaticKeepAliveClientMixin {
   late final PlayerController _playerController;
-  final double _itemExtent = 80.0; // Fixed height for all items
+  final double _itemExtent =
+      88.0; // 80px height + 8px margins (4px top + 4px bottom)
 
   @override
   bool get wantKeepAlive => true;
@@ -45,91 +49,223 @@ class _TracksListState extends State<TracksList>
     super.build(context);
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
-    super.build(context);
     return Obx(() {
       final songCount = _playerController.songs.length.toString();
+      // Get current song for background artwork
+      final currentSongIndex = _playerController.currentSongIndex.value;
+      final hasCurrentSong = currentSongIndex >= 0 &&
+          currentSongIndex < _playerController.currentPlaylist.length;
+      final currentSong = hasCurrentSong
+          ? _playerController.currentPlaylist[currentSongIndex]
+          : null;
 
-      return RefreshIndicator(
-        onRefresh: () async {
-          await _playerController.refreshSongs();
-        },
-        child: CustomScrollView(
-          cacheExtent: 1000,
-          physics: const AlwaysScrollableScrollPhysics(),
-          slivers: [
-            // Add song count as first sliver
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    // Song count (left)
-                    Text(
-                      "$songCount Songs",
-                      style: AppTheme.bodyMedium.copyWith(
-                        color: isDarkMode ? Colors.white : Colors.black,
-                      ),
-                    ),
+      return Stack(
+        children: [
+          // Background Artwork with Blur
+          if (currentSong != null)
+            Positioned.fill(
+              child: QueryArtworkWidget(
+                id: currentSong.id,
+                type: ArtworkType.AUDIO,
+                quality: 100,
+                size: 1000,
+                artworkQuality: FilterQuality.high,
+                nullArtworkWidget: Container(
+                  color: Theme.of(context).scaffoldBackgroundColor,
+                ),
+              ),
+            )
+          else
+            const Positioned.fill(
+              child: ThemedArtworkPlaceholder(
+                iconSize: 120,
+              ),
+            ),
 
-                    // Filter dropdown (right)
-                    DropdownButton<SongSortType>(
-                      value: _playerController.currentSortType.value,
-                      dropdownColor: Theme.of(context).primaryColor,
-                      style: AppTheme.bodyMedium.copyWith(
-                        color: isDarkMode ? Colors.white : Colors.black,
-                      ),
-                      underline: const SizedBox(),
-                      items: const [
-                        DropdownMenuItem(
-                          value: SongSortType.TITLE,
-                          child: Text("Name"),
-                        ),
-                        DropdownMenuItem(
-                          value: SongSortType.ARTIST,
-                          child: Text("Artist"),
-                        ),
-                        DropdownMenuItem(
-                          value: SongSortType.ALBUM,
-                          child: Text("Album"),
-                        ),
-                        DropdownMenuItem(
-                          value: SongSortType.DATE_ADDED,
-                          child: Text("Date Added"),
-                        ),
-                        DropdownMenuItem(
-                          value: SongSortType.DURATION,
-                          child: Text("Duration"),
-                        ),
-                      ],
-                      onChanged: (value) async {
-                        if (value != null) {
-                          await _playerController.refreshSongs(sortType: value);
-                        }
-                      },
+          // Blur Effect
+          Positioned.fill(
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
+              child: Container(
+                color: Theme.of(context).scaffoldBackgroundColor.withValues(
+                      alpha: isDarkMode ? 0.7 : 0.85,
                     ),
-                  ],
+                child: Container(
+                  color: Theme.of(context).primaryColor.withValues(alpha: 0.05),
                 ),
               ),
             ),
+          ),
 
-            // Existing song list
-            SliverFixedExtentList(
-              itemExtent: _itemExtent,
-              delegate: SliverChildBuilderDelegate(
-                (context, index) {
-                  final song = _playerController.songs[index];
-                  return _TrackListItem(
-                    song: song,
-                    index: index,
-                    playerController: _playerController,
-                  );
-                },
-                childCount: _playerController.songs.length,
-              ),
+          // Content
+          RefreshIndicator(
+            onRefresh: () async {
+              await _playerController.refreshSongs();
+            },
+            child: CustomScrollView(
+              cacheExtent: 1000,
+              physics: const AlwaysScrollableScrollPhysics(),
+              slivers: [
+                // Modern header with song count and sort
+                SliverToBoxAdapter(
+                  child: Container(
+                    margin: const EdgeInsets.fromLTRB(12, 12, 12, 8),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 20, vertical: 16),
+                    decoration: BoxDecoration(
+                      color: isDarkMode
+                          ? Colors.white.withValues(alpha: 0.05)
+                          : Colors.white.withValues(alpha: 0.6),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: isDarkMode
+                            ? Colors.white.withValues(alpha: 0.1)
+                            : Colors.black.withValues(alpha: 0.05),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        // Song count with icon
+                        Row(
+                          children: [
+                            Icon(
+                              Iconsax.music_library_2,
+                              size: 20,
+                              color: Theme.of(context).primaryColor,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              "$songCount Songs",
+                              style: AppTheme.bodyLarge.copyWith(
+                                fontWeight: FontWeight.w600,
+                                color: isDarkMode ? Colors.white : Colors.black,
+                              ),
+                            ),
+                          ],
+                        ),
+
+                        // Modern sort dropdown
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 0),
+                          decoration: BoxDecoration(
+                            color: Theme.of(context)
+                                .primaryColor
+                                .withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: DropdownButton<SongSortType>(
+                            value: _playerController.currentSortType.value,
+                            dropdownColor:
+                                isDarkMode ? Colors.grey[850] : Colors.white,
+                            style: AppTheme.bodyMedium.copyWith(
+                              color: Theme.of(context).primaryColor,
+                              fontWeight: FontWeight.w600,
+                            ),
+                            underline: const SizedBox(),
+                            icon: Icon(
+                              Iconsax.arrow_down_1,
+                              size: 16,
+                              color: Theme.of(context).primaryColor,
+                            ),
+                            borderRadius: BorderRadius.circular(12),
+                            menuMaxHeight: 300,
+                            itemHeight: 48,
+                            items: [
+                              DropdownMenuItem(
+                                value: SongSortType.TITLE,
+                                child: Row(
+                                  children: [
+                                    Icon(Iconsax.text,
+                                        size: 18,
+                                        color: Theme.of(context).primaryColor),
+                                    const SizedBox(width: 8),
+                                    const Text("Name"),
+                                  ],
+                                ),
+                              ),
+                              DropdownMenuItem(
+                                value: SongSortType.ARTIST,
+                                child: Row(
+                                  children: [
+                                    Icon(Iconsax.microphone,
+                                        size: 18,
+                                        color: Theme.of(context).primaryColor),
+                                    const SizedBox(width: 8),
+                                    const Text("Artist"),
+                                  ],
+                                ),
+                              ),
+                              DropdownMenuItem(
+                                value: SongSortType.ALBUM,
+                                child: Row(
+                                  children: [
+                                    Icon(Iconsax.music_dashboard,
+                                        size: 18,
+                                        color: Theme.of(context).primaryColor),
+                                    const SizedBox(width: 8),
+                                    const Text("Album"),
+                                  ],
+                                ),
+                              ),
+                              DropdownMenuItem(
+                                value: SongSortType.DATE_ADDED,
+                                child: Row(
+                                  children: [
+                                    Icon(Iconsax.calendar,
+                                        size: 18,
+                                        color: Theme.of(context).primaryColor),
+                                    const SizedBox(width: 8),
+                                    const Text("Date Added"),
+                                  ],
+                                ),
+                              ),
+                              DropdownMenuItem(
+                                value: SongSortType.DURATION,
+                                child: Row(
+                                  children: [
+                                    Icon(Iconsax.clock,
+                                        size: 18,
+                                        color: Theme.of(context).primaryColor),
+                                    const SizedBox(width: 8),
+                                    const Text("Duration"),
+                                  ],
+                                ),
+                              ),
+                            ],
+                            onChanged: (value) async {
+                              if (value != null) {
+                                await _playerController.refreshSongs(
+                                    sortType: value);
+                              }
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                // Existing song list
+                SliverFixedExtentList(
+                  itemExtent: _itemExtent,
+                  delegate: SliverChildBuilderDelegate(
+                    (context, index) {
+                      final song = _playerController.songs[index];
+                      return _TrackListItem(
+                        song: song,
+                        index: index,
+                        playerController: _playerController,
+                      );
+                    },
+                    childCount: _playerController.songs.length,
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       );
     });
   }
@@ -151,18 +287,46 @@ class _TrackListItem extends StatelessWidget {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
     return RepaintBoundary(
-      child: SizedBox(
-        height: 80, // Match SliverFixedExtentList's itemExtent
+      child: Container(
+        height: 80,
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        decoration: BoxDecoration(
+          color: isDarkMode
+              ? Colors.white.withValues(alpha: 0.05)
+              : Colors.white.withValues(alpha: 0.6),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isDarkMode
+                ? Colors.white.withValues(alpha: 0.05)
+                : Colors.black.withValues(alpha: 0.02),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
         child: Material(
           color: Colors.transparent,
           child: InkWell(
-            onTap: () => playerController.playSong(song),
+            borderRadius: BorderRadius.circular(12),
+            onTap: () {
+              playerController.currentPlaylist.value = playerController.songs;
+              playerController.playSong(index);
+            },
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              padding: const EdgeInsets.all(12.0),
               child: Row(
                 children: [
-                  _ArtworkWidget(song: song, isDarkMode: isDarkMode),
-                  const SizedBox(width: 16),
+                  // Album artwork with rounded corners
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: _ArtworkWidget(song: song, isDarkMode: isDarkMode),
+                  ),
+                  const SizedBox(width: 12),
+                  // Song info
                   Expanded(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -170,18 +334,32 @@ class _TrackListItem extends StatelessWidget {
                       children: [
                         Text(
                           song.title,
-                          style: AppTheme.bodyLarge,
+                          style: AppTheme.bodyLarge.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
+                        const SizedBox(height: 4),
                         Text(
                           song.artist ?? 'Unknown Artist',
-                          style: AppTheme.bodyMedium,
+                          style: AppTheme.bodyMedium.copyWith(
+                            color: isDarkMode
+                                ? Colors.grey[400]
+                                : Colors.grey[600],
+                          ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
                       ],
                     ),
+                  ),
+                  // Play icon hint
+                  Icon(
+                    Iconsax.play_circle,
+                    color:
+                        Theme.of(context).primaryColor.withValues(alpha: 0.6),
+                    size: 24,
                   ),
                 ],
               ),
@@ -208,10 +386,9 @@ class _ArtworkWidget extends StatelessWidget {
       size: 50,
       quality: 100,
       artworkQuality: FilterQuality.high,
-      nullArtworkWidget: const Icon(
-        Iconsax.music,
-        size: 50,
-        color: Colors.grey, // Use constant color for better performance
+      nullArtworkWidget: const ThemedArtworkPlaceholder(
+        iconSize: 24,
+        icon: Iconsax.music,
       ),
     );
   }

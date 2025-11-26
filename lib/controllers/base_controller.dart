@@ -5,7 +5,27 @@ import 'package:on_audio_query_forked/on_audio_query.dart';
 
 class BaseController extends GetxController {
   final OnAudioQuery audioQuery = OnAudioQuery();
-  final AudioPlayer audioPlayer = AudioPlayer();
+  late final AudioPlayer audioPlayer;
+  AndroidEqualizer? androidEqualizer;
+
+  BaseController() {
+    if (GetPlatform.isAndroid) {
+      androidEqualizer = AndroidEqualizer();
+      print('[BaseController] AndroidEqualizer created');
+    } else {
+      print('[BaseController] Not Android, skipping equalizer');
+    }
+
+    audioPlayer = AudioPlayer(
+      audioPipeline: AudioPipeline(
+        androidAudioEffects: [
+          if (androidEqualizer != null) androidEqualizer!,
+        ],
+      ),
+    );
+    print(
+        '[BaseController] AudioPlayer created with ${androidEqualizer != null ? "equalizer" : "no equalizer"}');
+  }
 
   var songs = <SongModel>[].obs;
   var isDarkModeEnabled = false.obs;

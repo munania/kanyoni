@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:kanyoni/homepage.dart'; // Adjust import if needed
+import 'package:kanyoni/app_layout.dart';
+import 'package:kanyoni/homepage.dart';
 import 'package:kanyoni/main.dart';
+import 'package:permission_handler/permission_handler.dart';
 
-import 'features/playlists/controller/playlists_controller.dart'; // For AppLayout, requestPermissions
+import 'controllers/player_controller.dart';
+import 'features/playlists/controller/playlists_controller.dart';
 
 class SplashScreenPage extends StatefulWidget {
   const SplashScreenPage({super.key});
@@ -14,6 +17,9 @@ class SplashScreenPage extends StatefulWidget {
 
 class _SplashScreenPageState extends State<SplashScreenPage> {
   final playlistController = Get.find<PlaylistController>();
+  bool _isError = false;
+  String _errorMessage = '';
+  bool _showRetry = false;
 
   @override
   void initState() {
@@ -22,40 +28,78 @@ class _SplashScreenPageState extends State<SplashScreenPage> {
   }
 
   Future<void> _initializeApp() async {
-    // Get.put for controllers in main() should have already run.
-    // AudioService.init in main() is also assumed to be awaited and completed.
+    setState(() {
+      _isError = false;
+      _showRetry = false;
+    });
 
     try {
       // 1. Request Permissions
-      await requestPermissions(); // This is the function from main.dart
+      final hasPermissions = await requestPermissions();
+
+      if (!hasPermissions) {
+        setState(() {
+          _isError = true;
+          _errorMessage = 'Storage permission is required to play music.';
+          _showRetry = true;
+        });
+        return;
+      }
 
       // 2. Navigate to the main app
-      // A small delay can make the splash screen visible briefly if init is too fast.
       await Future.delayed(const Duration(milliseconds: 500));
 
       // Initialize your controllers after permissions
+      final playerController = Get.find<PlayerController>();
+      await playerController.fetchAllSongs();
       await playlistController.fetchPlaylists();
-    } catch (e) {
-      // Handle errors, maybe navigate to an error page or retry
-      if (mounted) {
-        Get.snackbar("Error", "Initialization failed: $e",
-            snackPosition: SnackPosition.BOTTOM);
-        // Optionally, navigate to an error screen or retry mechanism here
-      }
-    } finally {
-      // Ensure navigation happens even if there was an error,
-      // unless a specific error page is shown.
+
       if (mounted) {
         Get.off(() => const AppLayout(child: HomePage()));
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isError = true;
+          _errorMessage = 'Initialization failed: $e';
+          _showRetry = true;
+        });
       }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
+    return Scaffold(
       body: Center(
-        child: Icon(Icons.music_note, size: 100.0), // Replaced Column with Icon
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.music_note, size: 100.0),
+            if (_isError) ...[
+              const SizedBox(height: 20),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 32.0),
+                child: Text(
+                  _errorMessage,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: Colors.red),
+                ),
+              ),
+              const SizedBox(height: 20),
+              if (_showRetry)
+                ElevatedButton(
+                  onPressed: () async {
+                    if (_errorMessage.contains('permission')) {
+                      await openAppSettings();
+                    }
+                    _initializeApp();
+                  },
+                  child: const Text('Open Settings / Retry'),
+                ),
+            ],
+          ],
+        ),
       ),
     );
   }
