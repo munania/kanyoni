@@ -500,7 +500,12 @@ class ExtraControls extends StatelessWidget {
       children: [
         ScaleButton(
           onTap: () {
-            Get.to(() => Lyrics(songId: songId));
+            Get.to(
+              () => Lyrics(songId: songId),
+              transition: Transition.rightToLeft,
+              duration: const Duration(milliseconds: 250),
+              curve: Curves.easeOut,
+            );
           },
           child: Icon(
             Iconsax.book,
@@ -850,7 +855,12 @@ class ExtraControls extends StatelessWidget {
         }),
         ScaleButton(
           onTap: () {
-            Get.to(() => const EqualizerScreen());
+            Get.to(
+              () => const EqualizerScreen(),
+              transition: Transition.fadeIn,
+              duration: const Duration(milliseconds: 250),
+              curve: Curves.easeOut,
+            );
           },
           child: Icon(
             Iconsax.setting_4,
@@ -860,18 +870,34 @@ class ExtraControls extends StatelessWidget {
         ),
         ScaleButton(
           onTap: () {
-            // TODO: Implement sleep timer
-            Get.snackbar(
-              'Sleep Timer',
-              'Coming soon!',
-              snackPosition: SnackPosition.BOTTOM,
+            showModalBottomSheet(
+              context: context,
+              backgroundColor: Colors.transparent,
+              isScrollControlled: true,
+              builder: (context) =>
+                  _SleepTimerSheet(controller: playerController),
             );
           },
-          child: Icon(
-            Iconsax.timer_1,
-            size: iconSize,
-            color: Theme.of(context).iconTheme.color,
-          ),
+          child: Obx(() {
+            final isActive = playerController.sleepTimerActive.value;
+            return Container(
+              padding: const EdgeInsets.all(8),
+              decoration: isActive
+                  ? BoxDecoration(
+                      color:
+                          Theme.of(context).primaryColor.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    )
+                  : null,
+              child: Icon(
+                Iconsax.timer_1,
+                size: iconSize,
+                color: isActive
+                    ? Theme.of(context).primaryColor
+                    : Theme.of(context).iconTheme.color,
+              ),
+            );
+          }),
         ),
       ],
     );
@@ -888,7 +914,7 @@ class ScaleButton extends StatefulWidget {
     super.key,
     required this.onTap,
     required this.child,
-    this.duration = const Duration(milliseconds: 100),
+    this.duration = const Duration(milliseconds: 50),
     this.scale = 0.9,
   });
 
@@ -935,6 +961,256 @@ class _ScaleButtonState extends State<ScaleButton>
       child: ScaleTransition(
         scale: _scaleAnimation,
         child: widget.child,
+      ),
+    );
+  }
+}
+
+class _SleepTimerSheet extends StatelessWidget {
+  final PlayerController controller;
+
+  const _SleepTimerSheet({required this.controller});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Theme.of(context).scaffoldBackgroundColor,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.2),
+            blurRadius: 20,
+            offset: const Offset(0, -5),
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const SizedBox(height: 12),
+          Container(
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: Colors.grey.withValues(alpha: 0.3),
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(height: 24),
+          Text(
+            'Sleep Timer',
+            style: AppTheme.headlineMedium,
+          ),
+          const SizedBox(height: 8),
+          Obx(() {
+            if (controller.sleepTimerActive.value) {
+              final remaining = controller.sleepTimerRemaining.value;
+              final minutes = remaining ~/ 60;
+              final seconds = remaining % 60;
+              return Text(
+                'Stopping in ${minutes}m ${seconds}s',
+                style: TextStyle(
+                  color: Theme.of(context).primaryColor,
+                  fontWeight: FontWeight.w600,
+                ),
+              );
+            }
+            return Text(
+              'Stop audio after...',
+              style: TextStyle(
+                color: Theme.of(context)
+                    .textTheme
+                    .bodyMedium
+                    ?.color
+                    ?.withValues(alpha: 0.6),
+              ),
+            );
+          }),
+          const SizedBox(height: 24),
+          Flexible(
+            child: GridView.count(
+              shrinkWrap: true,
+              crossAxisCount: 3,
+              mainAxisSpacing: 12,
+              crossAxisSpacing: 12,
+              childAspectRatio: 2.5,
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              children: [
+                _buildTimerOption(context, 5),
+                _buildTimerOption(context, 10),
+                _buildTimerOption(context, 15),
+                _buildTimerOption(context, 30),
+                _buildTimerOption(context, 45),
+                _buildTimerOption(context, 60),
+                _buildCustomTimerOption(context),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+          Obx(() {
+            if (controller.sleepTimerActive.value) {
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 32, left: 24, right: 24),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton(
+                    onPressed: () {
+                      controller.cancelSleepTimer();
+                      Navigator.pop(context);
+                    },
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.red,
+                      side: const BorderSide(color: Colors.red),
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                    child: const Text('Turn Off Timer'),
+                  ),
+                ),
+              );
+            }
+            return const SizedBox(height: 32);
+          }),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTimerOption(BuildContext context, int minutes) {
+    return Obx(() {
+      final isSelected = controller.sleepTimerActive.value &&
+          controller.sleepTimerDuration.value == minutes * 60;
+
+      return InkWell(
+        onTap: () {
+          controller.startSleepTimer(minutes);
+          Navigator.pop(context);
+          Future.delayed(const Duration(milliseconds: 300), () {
+            Get.snackbar(
+              'Sleep Timer Set',
+              'Audio will stop in $minutes minutes',
+              snackPosition: SnackPosition.BOTTOM,
+              duration: const Duration(seconds: 2),
+            );
+          });
+        },
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          decoration: BoxDecoration(
+            color: isSelected
+                ? Theme.of(context).primaryColor
+                : Theme.of(context).cardColor.withValues(alpha: 0.5),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: isSelected
+                  ? Theme.of(context).primaryColor
+                  : Colors.grey.withValues(alpha: 0.1),
+            ),
+          ),
+          alignment: Alignment.center,
+          child: Text(
+            '$minutes min',
+            style: TextStyle(
+              fontWeight: FontWeight.w600,
+              color: isSelected
+                  ? Colors.white
+                  : Theme.of(context).textTheme.bodyLarge?.color,
+            ),
+          ),
+        ),
+      );
+    });
+  }
+
+  Widget _buildCustomTimerOption(BuildContext context) {
+    return InkWell(
+      onTap: () => _showCustomTimerDialog(context),
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Theme.of(context).cardColor.withValues(alpha: 0.5),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: Colors.grey.withValues(alpha: 0.1),
+          ),
+        ),
+        alignment: Alignment.center,
+        child: Text(
+          'Custom',
+          style: TextStyle(
+            fontWeight: FontWeight.w600,
+            color: Theme.of(context).textTheme.bodyLarge?.color,
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showCustomTimerDialog(BuildContext context) {
+    final TextEditingController textController = TextEditingController();
+
+    Get.dialog(
+      AlertDialog(
+        backgroundColor: Theme.of(context).cardColor,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Set Custom Timer'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('Enter duration in minutes:'),
+            const SizedBox(height: 16),
+            TextField(
+              controller: textController,
+              keyboardType: TextInputType.number,
+              autofocus: true,
+              decoration: InputDecoration(
+                hintText: 'Minutes',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                filled: true,
+                fillColor: Theme.of(context).scaffoldBackgroundColor,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              final minutes = int.tryParse(textController.text);
+              if (minutes != null && minutes > 0) {
+                controller.startSleepTimer(minutes);
+                Get.back(); // Close dialog
+                Navigator.pop(context); // Close sheet
+
+                Future.delayed(const Duration(milliseconds: 300), () {
+                  Get.snackbar(
+                    'Sleep Timer Set',
+                    'Audio will stop in $minutes minutes',
+                    snackPosition: SnackPosition.BOTTOM,
+                    duration: const Duration(seconds: 2),
+                  );
+                });
+              } else {
+                Get.snackbar(
+                  'Invalid Duration',
+                  'Please enter a valid number of minutes',
+                  snackPosition: SnackPosition.BOTTOM,
+                  backgroundColor: Colors.red.withValues(alpha: 0.1),
+                  colorText: Colors.red,
+                );
+              }
+            },
+            child: const Text('Start'),
+          ),
+        ],
       ),
     );
   }

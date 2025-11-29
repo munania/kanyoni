@@ -1,53 +1,43 @@
-import 'package:audio_service/audio_service.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:hive/hive.dart';
-import 'package:kanyoni/controllers/base_controller.dart';
-import 'package:kanyoni/controllers/theme_controller.dart';
-import 'package:kanyoni/features/folders/controllers/folder_controller.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 
-import 'controllers/media_player_handler.dart';
-import 'controllers/player_controller.dart';
-import 'features/albums/controller/album_controller.dart';
-import 'features/artists/controller/artists_controller.dart';
-import 'features/genres/controller/genres_controller.dart';
-import 'features/playlists/controller/playlists_controller.dart';
 import 'splash_screen.dart';
+import 'utils/lazy_controller_binding.dart';
 import 'utils/theme/theme.dart';
+import 'utils/background_initializer.dart';
+import 'controllers/theme_controller.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  Get.put(BaseController());
-  Get.put(ThemeController());
-  Get.put(PlaylistController());
-  Get.put(AlbumController());
-  Get.put(ArtistController());
-  Get.put(GenreController());
-  Get.put(PlayerController());
-  Get.put(FolderController());
 
-  await AudioService.init(
-    builder: () => MediaPlayerHandler(),
-    config: const AudioServiceConfig(
-      androidNotificationChannelId: 'com.your.app.channel',
-      androidNotificationChannelName: 'Music Playback',
-      androidNotificationOngoing: true,
-      androidStopForegroundOnPause: true,
-    ),
-  );
+  // Initialize lazy bindings - controllers only load when needed
+  LazyControllerBinding().dependencies();
 
-  // Get application document directory
-  final appDir = await getApplicationDocumentsDirectory();
+  // Start background initialization (non-blocking)
+  // This runs in parallel while the UI loads
+  BackgroundInitializer.initialize().catchError((e) {
+    debugPrint('Background initialization error: $e');
+  });
 
-  // Initialize Hive and point it to that folder
-  Hive.init(appDir.path);
-
-  // Open a box (like a table in DB)
-  await Hive.openBox('lyricsBox');
+  // Initialize Hive asynchronously but don't block on opening boxes
+  _initializeHive();
 
   runApp(const MyApp());
+}
+
+/// Initialize Hive database in background
+Future<void> _initializeHive() async {
+  try {
+    final appDir = await getApplicationDocumentsDirectory();
+    Hive.init(appDir.path);
+    // Open boxes lazily when needed instead of blocking startup
+    await Hive.openBox('lyricsBox');
+  } catch (e) {
+    debugPrint('Hive initialization error: $e');
+  }
 }
 
 Future<bool> requestPermissions() async {

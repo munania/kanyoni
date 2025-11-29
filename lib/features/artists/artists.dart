@@ -30,6 +30,11 @@ class ArtistBean extends ISuspensionBean {
   String getSuspensionTag() => tagIndex;
 }
 
+class HeaderBean extends ISuspensionBean {
+  @override
+  String getSuspensionTag() => "!";
+}
+
 class ArtistsView extends StatefulWidget {
   const ArtistsView({super.key});
 
@@ -94,6 +99,12 @@ class _ArtistsViewState extends State<ArtistsView>
           ..sort((a, b) => a.artist.artist
               .toLowerCase()
               .compareTo(b.artist.artist.toLowerCase()));
+
+        final List<ISuspensionBean> azItems = [];
+        if (!_isGridView) {
+          azItems.add(HeaderBean());
+          azItems.addAll(artistBeans);
+        }
 
         final tags =
             List.generate(26, (index) => String.fromCharCode(index + 65));
@@ -181,197 +192,194 @@ class _ArtistsViewState extends State<ArtistsView>
                   ],
                 ),
               )
-            else
+            else if (_isGridView)
               CustomScrollView(
                 physics: const BouncingScrollPhysics(),
                 slivers: [
-                  // Toggle Button in SliverAppBar
-                  SliverAppBar(
-                    floating: true,
-                    snap: true,
-                    backgroundColor: Colors.transparent,
-                    elevation: 0,
-                    automaticallyImplyLeading: false,
-                    toolbarHeight: 60,
-                    flexibleSpace: Padding(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 8),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: [
-                          Container(
-                            decoration: BoxDecoration(
-                              color:
-                                  isDarkMode ? Colors.grey[900] : Colors.white,
-                              borderRadius: BorderRadius.circular(12),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.1),
-                                  blurRadius: 8,
-                                  offset: const Offset(0, 2),
-                                ),
-                              ],
+                  SliverToBoxAdapter(
+                    child: _buildToggleButton(context, isDarkMode),
+                  ),
+                  SliverPadding(
+                    padding: const EdgeInsets.all(16),
+                    sliver: SliverGrid(
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 2,
+                        childAspectRatio: 0.65,
+                        crossAxisSpacing: 16,
+                        mainAxisSpacing: 16,
+                      ),
+                      delegate: SliverChildBuilderDelegate(
+                        (context, index) {
+                          final artistBean = artistBeans[index];
+                          return ArtistGridCard(
+                            artist: artistBean.artist,
+                            onTap: () => Get.to(
+                              () =>
+                                  ArtistsDetailsView(artist: artistBean.artist),
+                              transition: Transition.cupertino,
+                              duration: const Duration(milliseconds: 300),
                             ),
-                            child: Material(
-                              color: Colors.transparent,
-                              child: InkWell(
-                                borderRadius: BorderRadius.circular(12),
-                                onTap: _toggleView,
-                                child: Padding(
-                                  padding: const EdgeInsets.all(10),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Icon(
-                                        _isGridView
-                                            ? Iconsax.row_horizontal
-                                            : Iconsax.element_4,
-                                        size: 20,
-                                        color: Theme.of(context).primaryColor,
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Text(
-                                        _isGridView ? 'List' : 'Grid',
-                                        style: TextStyle(
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.w600,
-                                          color: Theme.of(context).primaryColor,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ),
+                          );
+                        },
+                        childCount: artistBeans.length,
+                      ),
+                    ),
+                  )
+                ],
+              )
+            else
+              Column(
+                children: [
+                  Expanded(
+                    child: AzListView(
+                      padding: const EdgeInsets.only(right: 48, left: 16),
+                      data: azItems,
+                      itemCount: azItems.length,
+                      indexBarWidth: 36,
+                      indexBarItemHeight: 22,
+                      physics: const BouncingScrollPhysics(),
+                      itemBuilder: (context, index) {
+                        final item = azItems[index];
+                        if (item is HeaderBean) {
+                          return _buildToggleButton(context, isDarkMode);
+                        }
+                        final artistBean = item as ArtistBean;
+                        return ArtistCard(
+                          artist: artistBean.artist,
+                          onTap: () => Get.to(
+                            () => ArtistsDetailsView(artist: artistBean.artist),
+                            transition: Transition.cupertino,
+                            duration: const Duration(milliseconds: 300),
                           ),
-                        ],
+                        );
+                      },
+                      indexBarData: tags,
+                      indexBarOptions: IndexBarOptions(
+                        needRebuild: true,
+                        // Modern sleek design
+                        decoration: BoxDecoration(
+                          color: (isDarkMode ? Colors.grey[900] : Colors.white)
+                              ?.withValues(alpha: 0.85),
+                          borderRadius: BorderRadius.circular(18),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black
+                                  .withValues(alpha: isDarkMode ? 0.3 : 0.12),
+                              blurRadius: 12,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        // Hint bubble styling
+                        indexHintDecoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              Theme.of(context).primaryColor,
+                              Theme.of(context)
+                                  .primaryColor
+                                  .withValues(alpha: 0.8),
+                            ],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Theme.of(context)
+                                  .primaryColor
+                                  .withValues(alpha: 0.5),
+                              blurRadius: 20,
+                              spreadRadius: 3,
+                            ),
+                          ],
+                        ),
+                        indexHintAlignment: Alignment.centerRight,
+                        indexHintOffset: const Offset(-56, 0),
+                        indexHintTextStyle: TextStyle(
+                          color: Colors.white,
+                          fontSize: 34,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 0.5,
+                        ),
+                        // Index bar text styling
+                        textStyle: TextStyle(
+                          fontSize: 14,
+                          color: isDarkMode
+                              ? Colors.white.withValues(alpha: 0.5)
+                              : Colors.black.withValues(alpha: 0.45),
+                          fontWeight: FontWeight.w600,
+                          height: 1.4,
+                        ),
+                        selectTextStyle: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800,
+                          color: Theme.of(context).primaryColor,
+                          height: 1.4,
+                        ),
                       ),
                     ),
                   ),
-                  // Grid or List View
-                  if (_isGridView)
-                    SliverPadding(
-                      padding: const EdgeInsets.all(16),
-                      sliver: SliverGrid(
-                        gridDelegate:
-                            const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
-                          childAspectRatio: 0.65,
-                          crossAxisSpacing: 16,
-                          mainAxisSpacing: 16,
-                        ),
-                        delegate: SliverChildBuilderDelegate(
-                          (context, index) {
-                            final artistBean = artistBeans[index];
-                            return ArtistGridCard(
-                              artist: artistBean.artist,
-                              onTap: () => Get.to(
-                                () => ArtistsDetailsView(
-                                    artist: artistBean.artist),
-                                transition: Transition.cupertino,
-                                duration: const Duration(milliseconds: 300),
-                              ),
-                            );
-                          },
-                          childCount: artistBeans.length,
-                        ),
-                      ),
-                    )
-                  else
-                    SliverToBoxAdapter(
-                      child: SizedBox(
-                        height: MediaQuery.of(context).size.height - 300,
-                        child: AzListView(
-                          padding: const EdgeInsets.only(right: 48, left: 16),
-                          data: artistBeans,
-                          itemCount: artistBeans.length,
-                          indexBarWidth: 36,
-                          indexBarItemHeight: 22,
-                          itemBuilder: (context, index) {
-                            final artistBean = artistBeans[index];
-                            return ArtistCard(
-                              artist: artistBean.artist,
-                              onTap: () => Get.to(
-                                () => ArtistsDetailsView(
-                                    artist: artistBean.artist),
-                                transition: Transition.cupertino,
-                                duration: const Duration(milliseconds: 300),
-                              ),
-                            );
-                          },
-                          indexBarData: tags,
-                          indexBarOptions: IndexBarOptions(
-                            needRebuild: true,
-                            // Modern sleek design
-                            decoration: BoxDecoration(
-                              color:
-                                  (isDarkMode ? Colors.grey[900] : Colors.white)
-                                      ?.withValues(alpha: 0.85),
-                              borderRadius: BorderRadius.circular(18),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withValues(
-                                      alpha: isDarkMode ? 0.3 : 0.12),
-                                  blurRadius: 12,
-                                  offset: const Offset(0, 4),
-                                ),
-                              ],
-                            ),
-                            // Hint bubble styling
-                            indexHintDecoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: [
-                                  Theme.of(context).primaryColor,
-                                  Theme.of(context)
-                                      .primaryColor
-                                      .withValues(alpha: 0.8),
-                                ],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                              ),
-                              shape: BoxShape.circle,
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Theme.of(context)
-                                      .primaryColor
-                                      .withValues(alpha: 0.5),
-                                  blurRadius: 20,
-                                  spreadRadius: 3,
-                                ),
-                              ],
-                            ),
-                            indexHintAlignment: Alignment.centerRight,
-                            indexHintOffset: const Offset(-56, 0),
-                            indexHintTextStyle: TextStyle(
-                              color: Colors.white,
-                              fontSize: 34,
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: 0.5,
-                            ),
-                            // Index bar text styling
-                            textStyle: TextStyle(
-                              fontSize: 14,
-                              color: isDarkMode
-                                  ? Colors.white.withValues(alpha: 0.5)
-                                  : Colors.black.withValues(alpha: 0.45),
-                              fontWeight: FontWeight.w600,
-                              height: 1.4,
-                            ),
-                            selectTextStyle: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w800,
-                              color: Theme.of(context).primaryColor,
-                              height: 1.4,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
                 ],
               ),
           ],
         );
       }),
+    );
+  }
+
+  Widget _buildToggleButton(BuildContext context, bool isDarkMode) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          Container(
+            decoration: BoxDecoration(
+              color: isDarkMode ? Colors.grey[900] : Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.1),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(12),
+                onTap: _toggleView,
+                child: Padding(
+                  padding: const EdgeInsets.all(10),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        _isGridView
+                            ? Iconsax.row_horizontal
+                            : Iconsax.element_4,
+                        size: 20,
+                        color: Theme.of(context).primaryColor,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        _isGridView ? 'List' : 'Grid',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Theme.of(context).primaryColor,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

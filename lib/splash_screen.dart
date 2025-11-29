@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:kanyoni/app_layout.dart';
 import 'package:kanyoni/homepage.dart';
 import 'package:kanyoni/main.dart';
+import 'package:kanyoni/utils/background_initializer.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 import 'controllers/player_controller.dart';
@@ -16,10 +17,11 @@ class SplashScreenPage extends StatefulWidget {
 }
 
 class _SplashScreenPageState extends State<SplashScreenPage> {
-  final playlistController = Get.find<PlaylistController>();
   bool _isError = false;
   String _errorMessage = '';
   bool _showRetry = false;
+  String _currentStep = 'Initializing...';
+  double _progress = 0.0;
 
   @override
   void initState() {
@@ -31,10 +33,13 @@ class _SplashScreenPageState extends State<SplashScreenPage> {
     setState(() {
       _isError = false;
       _showRetry = false;
+      _currentStep = 'Initializing...';
+      _progress = 0.0;
     });
 
     try {
-      // 1. Request Permissions
+      // Step 1: Request Permissions (20%)
+      _updateProgress('Requesting permissions...', 0.2);
       final hasPermissions = await requestPermissions();
 
       if (!hasPermissions) {
@@ -46,16 +51,20 @@ class _SplashScreenPageState extends State<SplashScreenPage> {
         return;
       }
 
-      // 2. Navigate to the main app
-      await Future.delayed(const Duration(milliseconds: 500));
+      // Step 2: Wait for background initialization (40%)
+      _updateProgress('Setting up audio service...', 0.4);
+      await BackgroundInitializer.waitForInitialization();
 
-      // Initialize your controllers after permissions
-      final playerController = Get.find<PlayerController>();
-      await playerController.fetchAllSongs();
-      await playlistController.fetchPlaylists();
+      // Step 3: Navigate to main app immediately (60%)
+      _updateProgress('Loading interface...', 0.6);
+      await Future.delayed(const Duration(milliseconds: 200));
 
       if (mounted) {
+        // Navigate to main app - songs will load in background
         Get.off(() => const AppLayout(child: HomePage()));
+
+        // Load data in background after navigation
+        _loadDataInBackground();
       }
     } catch (e) {
       if (mounted) {
@@ -68,6 +77,35 @@ class _SplashScreenPageState extends State<SplashScreenPage> {
     }
   }
 
+  /// Load songs and playlists in background after UI is shown
+  void _loadDataInBackground() async {
+    try {
+      // Get controllers lazily - they initialize on first access
+      final playerController = Get.find<PlayerController>();
+      final playlistController = Get.find<PlaylistController>();
+
+      // Load in background - UI is already interactive
+      await Future.wait([
+        playerController.fetchAllSongs(),
+        playlistController.fetchPlaylists(),
+      ]);
+
+      debugPrint('[SplashScreen] Background data loading complete');
+    } catch (e) {
+      debugPrint('[SplashScreen] Error loading background data: $e');
+      // Don't show error - app is already usable
+    }
+  }
+
+  void _updateProgress(String step, double progress) {
+    if (mounted) {
+      setState(() {
+        _currentStep = step;
+        _progress = progress;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -76,6 +114,29 @@ class _SplashScreenPageState extends State<SplashScreenPage> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             const Icon(Icons.music_note, size: 100.0),
+            const SizedBox(height: 40),
+            if (!_isError) ...[
+              // Progress indicator
+              SizedBox(
+                width: 200,
+                child: Column(
+                  children: [
+                    LinearProgressIndicator(
+                      value: _progress,
+                      backgroundColor: Colors.grey[300],
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      _currentStep,
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
             if (_isError) ...[
               const SizedBox(height: 20),
               Padding(

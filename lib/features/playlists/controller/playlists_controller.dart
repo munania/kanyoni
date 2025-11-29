@@ -168,33 +168,43 @@ class PlaylistController extends BaseController {
     await ensureSongsForPlaylistLoaded(
         playlistId); // Ensure songs are loaded/cached first
     try {
-      final systemSong = _playerController.songs.firstWhere(
+      final systemSong = _playerController.songs.firstWhereOrNull(
         (s) => s.id == systemSongId,
       );
 
+      if (systemSong == null) {
+        _handleError('Adding to playlist', 'Song not found in system');
+        return false;
+      }
+
       final existingSongModels = _playlistSongsCache[playlistId] ?? [];
-      final existingIds = existingSongModels.map((s) => s.id).toList();
 
-      // Determine the ID to check against and add. This logic might need adjustment
-      // if playlist songs can have different IDs than system songs.
-      final idToAdd = _findSystemSongId(systemSong) ?? systemSongId;
+      // Check if song is already in playlist (by ID or metadata match)
+      final isAlreadyInPlaylist = existingSongModels
+          .any((s) => s.id == systemSongId || _areSongsMatching(s, systemSong));
 
-      if (existingIds.contains(idToAdd)) {
+      if (isAlreadyInPlaylist) {
         if (kDebugMode) print('Song already in playlist.');
         return true; // Already in playlist
       }
 
-      final result = await audioQuery.addToPlaylist(playlistId, idToAdd);
+      // We use the systemSongId to add.
+      // Note: If the file was rescanned, the ID might have changed, but systemSongId
+      // comes from the current system list, so it should be valid for the MediaStore.
+      final result = await audioQuery.addToPlaylist(playlistId, systemSongId);
 
-      if (result) {
+      if (_isOperationSuccessful(result)) {
         // Add to local cache
         final updatedSongs = List<SongModel>.from(existingSongModels)
           ..add(systemSong);
         _playlistSongsCache[playlistId] = updatedSongs;
         _playlistSongsCache.refresh();
+        _showSuccess('Added to playlist');
         return true;
+      } else {
+        _handleError('Adding to playlist', 'Operation failed');
+        return false;
       }
-      return false;
     } catch (e) {
       _handleError('Adding to playlist $playlistId', e);
       return false;
@@ -202,19 +212,64 @@ class PlaylistController extends BaseController {
   }
 
   Future<void> removeFromPlaylist(int playlistId, int songId) async {
-    await ensureSongsForPlaylistLoaded(
-        playlistId); // Ensure songs are loaded/cached first
     try {
-      final result = await audioQuery.removeFromPlaylist(playlistId, songId);
+      // 1. Fetch current songs in the playlist to get their actual IDs in the database
+      // We need this because the ID in the playlist might differ from the System ID (e.g. after re-scan)
+      final playlistSongs = await audioQuery.queryAudiosFrom(
+        AudiosFromType.PLAYLIST,
+        playlistId,
+      );
+
+      print('playlistSongs: $playlistSongs');
+
+      // 2. Find the ID to remove.
+      // The songId passed is likely the System ID (from our cache).
+      // We want to find a song in playlistSongs that matches this System Song.
+
+      // Get the full system song object for metadata comparison
+      final systemSong = _playerController.songs.firstWhereOrNull(
+        (s) => s.id == songId,
+      );
+
+      print('systemSong: $systemSong');
+
+      int idToRemove = songId; // Default to the passed ID
+
+      print('idToRemove: $idToRemove');
+
+      if (systemSong != null) {
+        // Try to find a matching song in the playlist
+        final match = playlistSongs.firstWhereOrNull((ps) {
+          // Check ID match
+          if (ps.id == songId) return true;
+          // Check metadata match (robustness for re-scanned files)
+          return _areSongsMatching(ps, systemSong);
+        });
+
+        if (match != null) {
+          idToRemove = match.id;
+        }
+      }
+
+      // 3. Perform removal
+      final result =
+          await audioQuery.removeFromPlaylist(playlistId, idToRemove);
+
       if (_isOperationSuccessful(result)) {
+        // 4. Update local cache
         final currentSongs = _playlistSongsCache[playlistId];
         if (currentSongs != null) {
+          // Remove by the System ID (songId) because that's what is in our cache
           final updatedSongs =
               currentSongs.where((s) => s.id != songId).toList();
           _playlistSongsCache[playlistId] = updatedSongs;
           _playlistSongsCache.refresh();
         }
         _showSuccess('Song removed from playlist');
+      } else {
+        if (kDebugMode) print('Failed to remove song from playlist');
+        // Force reload to ensure UI is in sync with reality
+        await _loadPlaylistSongs(playlistId);
       }
     } catch (e) {
       _handleError('Removing song from playlist', e);
@@ -224,18 +279,6 @@ class PlaylistController extends BaseController {
   bool _isOperationSuccessful(dynamic result) {
     return result.toString() == '1' ||
         result.toString().toLowerCase() == 'true';
-  }
-
-  int? _findSystemSongId(SongModel playlistSong) {
-    try {
-      return _playerController.songs
-          .firstWhere(
-            (systemSong) => _areSongsMatching(playlistSong, systemSong),
-          )
-          .id;
-    } catch (e) {
-      return null;
-    }
   }
 
   bool _areSongsMatching(SongModel a, SongModel b) {
@@ -259,11 +302,17 @@ class PlaylistController extends BaseController {
 
   void _handleError(String operation, dynamic error) {
     if (kDebugMode) print('Error $operation: $error');
-    Get.snackbar('Error', 'Failed to $operation: ${error.toString()}',
-        snackPosition: SnackPosition.BOTTOM);
+    if (Get.context != null && Get.overlayContext != null) {
+      Get.snackbar('Error', 'Failed to $operation: ${error.toString()}',
+          snackPosition: SnackPosition.BOTTOM);
+    }
   }
 
   void _showSuccess(String message) {
-    Get.snackbar('Success', message, snackPosition: SnackPosition.BOTTOM);
+    if (Get.context != null && Get.overlayContext != null) {
+      Get.snackbar('Success', message, snackPosition: SnackPosition.BOTTOM);
+    } else {
+      if (kDebugMode) print('Success: $message (No overlay found)');
+    }
   }
 }

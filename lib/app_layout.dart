@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:sliding_up_panel/sliding_up_panel.dart';
 
@@ -32,22 +33,39 @@ class _AppLayoutState extends State<AppLayout> {
   Widget build(BuildContext context) {
     final playerController = Get.find<PlayerController>();
 
-    return Scaffold(
-      body: SlidingUpPanel(
-        controller: panelController,
-        minHeight: 70,
-        maxHeight: MediaQuery.of(context).size.height,
-        borderRadius: const BorderRadius.vertical(
-          top: Radius.circular(AppTheme.cornerRadius),
+    return PopScope(
+      canPop: false,
+      onPopInvoked: (didPop) {
+        if (didPop) return;
+
+        // Check if panel is NOT closed (open or opening)
+        if (!panelController.isPanelClosed) {
+          panelController.close();
+        } else {
+          if (Navigator.canPop(context)) {
+            Navigator.pop(context);
+          } else {
+            SystemNavigator.pop();
+          }
+        }
+      },
+      child: Scaffold(
+        body: SlidingUpPanel(
+          controller: panelController,
+          minHeight: 70,
+          maxHeight: MediaQuery.of(context).size.height,
+          borderRadius: const BorderRadius.vertical(
+            top: Radius.circular(AppTheme.cornerRadius),
+          ),
+          panel: NowPlayingPanel(
+            playerController: playerController,
+          ),
+          collapsed: CollapsedPanel(
+            playerController: playerController,
+            panelController: panelController,
+          ),
+          body: widget.child,
         ),
-        panel: NowPlayingPanel(
-          playerController: playerController,
-        ),
-        collapsed: CollapsedPanel(
-          playerController: playerController,
-          panelController: panelController,
-        ),
-        body: widget.child,
       ),
     );
   }

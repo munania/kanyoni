@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:kanyoni/utils/services/shared_prefs_service.dart';
@@ -8,12 +9,26 @@ class BaseController extends GetxController {
   late final AudioPlayer audioPlayer;
   AndroidEqualizer? androidEqualizer;
 
+  bool _isAudioPlayerInitialized = false;
+
   BaseController() {
+    // Defer heavy initialization - only create when needed
+    _initializeAudioPlayerLazily();
+  }
+
+  /// Lazy initialization of audio player
+  void _initializeAudioPlayerLazily() {
+    if (_isAudioPlayerInitialized) return;
+
     if (GetPlatform.isAndroid) {
       androidEqualizer = AndroidEqualizer();
-      print('[BaseController] AndroidEqualizer created');
+      if (kDebugMode) {
+        print('[BaseController] AndroidEqualizer created');
+      }
     } else {
-      print('[BaseController] Not Android, skipping equalizer');
+      if (kDebugMode) {
+        print('[BaseController] Not Android, skipping equalizer');
+      }
     }
 
     audioPlayer = AudioPlayer(
@@ -23,8 +38,12 @@ class BaseController extends GetxController {
         ],
       ),
     );
-    print(
-        '[BaseController] AudioPlayer created with ${androidEqualizer != null ? "equalizer" : "no equalizer"}');
+
+    _isAudioPlayerInitialized = true;
+    if (kDebugMode) {
+      print(
+          '[BaseController] AudioPlayer created with ${androidEqualizer != null ? "equalizer" : "no equalizer"}');
+    }
   }
 
   var songs = <SongModel>[].obs;
@@ -33,6 +52,7 @@ class BaseController extends GetxController {
   @override
   void onInit() async {
     super.onInit();
+    // Lightweight initialization only
     isDarkModeEnabled.value = (await prefs).getBool('darkModeStatus') ?? false;
   }
 

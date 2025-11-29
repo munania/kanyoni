@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io' show Platform;
 
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
@@ -6,7 +7,6 @@ import 'package:just_audio/just_audio.dart';
 import 'package:kanyoni/utils/services/shared_prefs_service.dart';
 import 'package:on_audio_query_forked/on_audio_query.dart';
 import 'package:rxdart/rxdart.dart';
-import 'dart:io' show Platform;
 
 import 'base_controller.dart';
 
@@ -53,6 +53,12 @@ class PlayerController extends BaseController {
   var currentPreset = ''.obs;
   var minBandLevel = 0.0.obs;
   var maxBandLevel = 0.0.obs;
+
+  // Sleep Timer Observables
+  var sleepTimerActive = false.obs;
+  var sleepTimerDuration = 0.obs; // in seconds
+  var sleepTimerRemaining = 0.obs; // in seconds
+  Timer? _sleepTimer;
 
   Future<int?> get lastAppCloseTime async =>
       (await prefs).getInt(kLastAppCloseTimeKey);
@@ -630,6 +636,7 @@ class PlayerController extends BaseController {
   @override
   void onClose() {
     _scrollDebounceTimer?.cancel();
+    cancelSleepTimer();
     _saveState();
     audioPlayer.dispose();
     super.onClose();
@@ -719,13 +726,13 @@ class PlayerController extends BaseController {
     }
   }
 
-  Future<void> setBandLevel(int bandId, int level) async {
+  Future<void> setBandLevel(int bandId, double level) async {
     if (!isEqualizerInitialized.value || androidEqualizer == null) return;
 
     try {
       final parameters = await androidEqualizer!.parameters;
       if (bandId < parameters.bands.length) {
-        await parameters.bands[bandId].setGain(level.toDouble());
+        await parameters.bands[bandId].setGain(level);
         currentPreset.value = 'Custom';
       }
     } catch (e) {
@@ -754,8 +761,9 @@ class PlayerController extends BaseController {
           break;
         case 'Treble Boost':
           gains = List.generate(parameters.bands.length, (index) {
-            if (index > parameters.bands.length - 3)
+            if (index > parameters.bands.length - 3) {
               return maxBandLevel.value * 0.6;
+            }
             return 0.0;
           });
           break;
@@ -780,6 +788,60 @@ class PlayerController extends BaseController {
         print('Error setting preset: $e');
       }
     }
+  }
+
+  // Sleep Timer Methods
+  void startSleepTimer(int minutes) {
+    cancelSleepTimer(); // Cancel any existing timer
+
+    sleepTimerDuration.value = minutes * 60;
+    sleepTimerRemaining.value = minutes * 60;
+    sleepTimerActive.value = true;
+
+    _sleepTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (sleepTimerRemaining.value > 0) {
+        sleepTimerRemaining.value--;
+      } else {
+        _onSleepTimerExpired();
+      }
+    });
+
+    if (kDebugMode) {
+      print('Sleep timer started: $minutes minutes');
+    }
+  }
+
+  void cancelSleepTimer() {
+    _sleepTimer?.cancel();
+    _sleepTimer = null;
+    sleepTimerActive.value = false;
+    sleepTimerDuration.value = 0;
+    sleepTimerRemaining.value = 0;
+
+    if (kDebugMode) {
+      print('Sleep timer cancelled');
+    }
+  }
+
+  void _onSleepTimerExpired() {
+    if (kDebugMode) {
+      print('Sleep timer expired - pausing playback');
+    }
+
+    cancelSleepTimer();
+
+    // Pause playback
+    if (isPlaying.value) {
+      togglePlayPause();
+    }
+
+    // Show notification
+    Get.snackbar(
+      'Sleep Timer',
+      'Timer expired - playback paused',
+      snackPosition: SnackPosition.BOTTOM,
+      duration: const Duration(seconds: 3),
+    );
   }
 }
 
