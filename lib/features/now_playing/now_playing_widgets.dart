@@ -13,7 +13,6 @@ import 'package:on_audio_query_pluse/on_audio_query.dart';
 import 'package:flutter_audio_waveforms/flutter_audio_waveforms.dart';
 import 'package:kanyoni/controllers/theme_controller.dart';
 import 'package:kanyoni/features/equalizer/equalizer_screen.dart';
-import '../lyrics/lyrics.dart';
 
 class DragHandle extends StatelessWidget {
   const DragHandle({super.key});
@@ -483,11 +482,13 @@ class MediaControls extends StatelessWidget {
 class ExtraControls extends StatelessWidget {
   final PlayerController playerController;
   final int songId;
+  final VoidCallback onLyricsTap;
 
   const ExtraControls({
     super.key,
     required this.playerController,
     required this.songId,
+    required this.onLyricsTap,
   });
 
   @override
@@ -499,14 +500,7 @@ class ExtraControls extends StatelessWidget {
       // Changed to spaceBetween
       children: [
         ScaleButton(
-          onTap: () {
-            Get.to(
-              () => Lyrics(songId: songId),
-              transition: Transition.rightToLeft,
-              duration: const Duration(milliseconds: 250),
-              curve: Curves.easeOut,
-            );
-          },
+          onTap: onLyricsTap,
           child: Icon(
             Iconsax.book,
             size: iconSize,

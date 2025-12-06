@@ -7,6 +7,7 @@ import 'package:on_audio_query_pluse/on_audio_query.dart';
 import 'package:sliding_up_panel/sliding_up_panel.dart';
 
 import '../songDetails/song_details.dart';
+import '../lyrics/lyrics.dart';
 import 'now_playing_widgets.dart';
 
 class CollapsedPanel extends StatelessWidget {
@@ -102,6 +103,8 @@ class NowPlayingPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final RxBool showLyrics = false.obs;
+
     return Obx(() {
       final currentSong = playerController.activeSong;
 
@@ -136,32 +139,37 @@ class NowPlayingPanel extends StatelessWidget {
               Expanded(
                 child: Column(
                   children: [
-                    // Artwork Area - Flexible space
+                    // Artwork/Lyrics Area - Flexible space
                     Expanded(
                       child: Center(
-                        child: TweenAnimationBuilder<double>(
-                          tween: Tween(begin: 0.9, end: 1.0),
-                          duration: const Duration(milliseconds: 400),
-                          curve: Curves.easeOutBack,
-                          builder: (context, value, child) {
-                            return Transform.scale(
-                              scale: value,
-                              child: child,
-                            );
-                          },
-                          child: Hero(
-                            tag: 'current_artwork',
-                            child: GestureDetector(
-                              onTap: () {
-                                Get.to(
-                                  () => SongDetails(currentSong: currentSong),
-                                  transition: Transition.downToUp,
-                                );
-                              },
-                              child: ArtworkDisplay(song: currentSong),
+                        child: Obx(() {
+                          if (showLyrics.value) {
+                            return const LyricsView();
+                          }
+                          return TweenAnimationBuilder<double>(
+                            tween: Tween(begin: 0.9, end: 1.0),
+                            duration: const Duration(milliseconds: 400),
+                            curve: Curves.easeOutBack,
+                            builder: (context, value, child) {
+                              return Transform.scale(
+                                scale: value,
+                                child: child,
+                              );
+                            },
+                            child: Hero(
+                              tag: 'current_artwork',
+                              child: GestureDetector(
+                                onTap: () {
+                                  Get.to(
+                                    () => SongDetails(currentSong: currentSong),
+                                    transition: Transition.downToUp,
+                                  );
+                                },
+                                child: ArtworkDisplay(song: currentSong),
+                              ),
                             ),
-                          ),
-                        ),
+                          );
+                        }),
                       ),
                     ),
 
@@ -189,6 +197,7 @@ class NowPlayingPanel extends StatelessWidget {
                     ExtraControls(
                       playerController: playerController,
                       songId: currentSong.id,
+                      onLyricsTap: () => showLyrics.toggle(),
                     ),
 
                     const SizedBox(height: 48), // Bottom padding
