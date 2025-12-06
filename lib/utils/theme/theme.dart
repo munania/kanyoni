@@ -8,10 +8,10 @@ class AppTheme {
     // Get the primary color from the controller
     final primaryColor = themeController.primaryColor;
 
-    // Generate subtle background colors based on primary color
-    final scaffoldBackgroundColor = _getLightBackground(primaryColor);
-    final cardColor = _getLightCardColor(primaryColor);
-    final appBarColor = _getLightAppBarColor(primaryColor);
+    // Generate polished background colors
+    const scaffoldBackgroundColor = Color(0xFFF8F9FA);
+    const cardColor = Colors.white;
+    const surfaceColor = Color(0xFFFAFAFA);
 
     return ThemeData(
       useMaterial3: true,
@@ -19,74 +19,192 @@ class AppTheme {
       primaryColor: primaryColor,
       scaffoldBackgroundColor: scaffoldBackgroundColor,
 
-      // Apply color scheme - this is critical for modern Flutter
+      // Comprehensive color scheme
       colorScheme: ColorScheme.light(
         primary: primaryColor,
         secondary: primaryColor,
         onPrimary: Colors.white,
         surface: cardColor,
-        onSurface: Colors.black87,
-        primaryContainer: primaryColor.withValues(alpha: 0.1),
-        secondaryContainer: primaryColor.withValues(alpha: 0.05),
+        onSurface: const Color(0xFF1A1A1A),
+        surfaceContainerHighest: surfaceColor,
+        primaryContainer: primaryColor.withValues(alpha: 0.12),
+        secondaryContainer: primaryColor.withValues(alpha: 0.08),
+        error: const Color(0xFFD32F2F),
+        onError: Colors.white,
       ),
 
-      // Apply color to AppBar
+      // AppBar theme
       appBarTheme: AppBarTheme(
-        backgroundColor: appBarColor,
+        backgroundColor: cardColor,
         elevation: 0,
+        scrolledUnderElevation: 2,
+        surfaceTintColor: primaryColor.withValues(alpha: 0.05),
         iconTheme: IconThemeData(color: primaryColor),
         titleTextStyle: TextStyle(
-          color: primaryColor,
-          fontWeight: FontWeight.bold,
+          color: const Color(0xFF1A1A1A),
+          fontWeight: FontWeight.w600,
           fontSize: 20,
+          letterSpacing: 0.15,
         ),
       ),
 
-      // Apply color to cards
+      // Card theme
       cardTheme: CardThemeData(
         color: cardColor,
+        surfaceTintColor: primaryColor.withValues(alpha: 0.02),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(cornerRadius),
+          borderRadius: BorderRadius.circular(16),
         ),
-        elevation: 2,
+        elevation: 1,
+        shadowColor: Colors.black.withValues(alpha: 0.08),
       ),
 
-      // Apply color to buttons
+      // Input decoration theme
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: surfaceColor,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide.none,
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide.none,
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: primaryColor, width: 2),
+        ),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      ),
+
+      // Button themes
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           backgroundColor: primaryColor,
           foregroundColor: Colors.white,
+          elevation: 2,
+          shadowColor: primaryColor.withValues(alpha: 0.3),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(cornerRadius),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+        ),
+      ),
+
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(
+          foregroundColor: primaryColor,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
           ),
         ),
       ),
 
-      // Apply color to floating action button
+      // FAB theme
       floatingActionButtonTheme: FloatingActionButtonThemeData(
         backgroundColor: primaryColor,
         foregroundColor: Colors.white,
+        elevation: 4,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
       ),
 
-      // Apply color to text selection and cursors
+      // Icon theme
+      iconTheme: IconThemeData(
+        color: const Color(0xFF424242),
+        size: 24,
+      ),
+
+      // Divider theme
+      dividerTheme: const DividerThemeData(
+        color: Color(0xFFE0E0E0),
+        thickness: 1,
+        space: 1,
+      ),
+
+      // Bottom navigation bar theme
+      bottomNavigationBarTheme: BottomNavigationBarThemeData(
+        backgroundColor: cardColor,
+        selectedItemColor: primaryColor,
+        unselectedItemColor: const Color(0xFF9E9E9E),
+        type: BottomNavigationBarType.fixed,
+        elevation: 8,
+      ),
+
+      // Tab bar theme
+      tabBarTheme: TabBarThemeData(
+        labelColor: primaryColor,
+        unselectedLabelColor: const Color(0xFF757575),
+        indicatorColor: primaryColor,
+        indicatorSize: TabBarIndicatorSize.label,
+      ),
+
+      // Text selection theme
       textSelectionTheme: TextSelectionThemeData(
         cursorColor: primaryColor,
         selectionColor: primaryColor.withValues(alpha: 0.3),
         selectionHandleColor: primaryColor,
       ),
 
-      // Apply color to switches, checkboxes
+      // Switch theme
       switchTheme: SwitchThemeData(
         thumbColor: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) return primaryColor;
-          return Colors.grey;
+          return const Color(0xFFBDBDBD);
         }),
         trackColor: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
             return primaryColor.withValues(alpha: 0.5);
           }
-          return Colors.grey.withValues(alpha: 0.5);
+          return const Color(0xFFE0E0E0);
         }),
+      ),
+
+      // Slider theme
+      sliderTheme: SliderThemeData(
+        activeTrackColor: primaryColor,
+        inactiveTrackColor: primaryColor.withValues(alpha: 0.3),
+        thumbColor: primaryColor,
+        overlayColor: primaryColor.withValues(alpha: 0.2),
+      ),
+
+      // Progress indicator theme
+      progressIndicatorTheme: ProgressIndicatorThemeData(
+        color: primaryColor,
+        linearTrackColor: primaryColor.withValues(alpha: 0.2),
+        circularTrackColor: primaryColor.withValues(alpha: 0.2),
+      ),
+
+      // Chip theme
+      chipTheme: ChipThemeData(
+        backgroundColor: surfaceColor,
+        selectedColor: primaryColor.withValues(alpha: 0.15),
+        labelStyle: const TextStyle(color: Color(0xFF424242)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+        ),
+      ),
+
+      // Dialog theme
+      dialogTheme: DialogThemeData(
+        backgroundColor: cardColor,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        elevation: 8,
+      ),
+
+      // Snackbar theme
+      snackBarTheme: SnackBarThemeData(
+        backgroundColor: const Color(0xFF323232),
+        contentTextStyle: const TextStyle(color: Colors.white),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+        ),
+        behavior: SnackBarBehavior.floating,
       ),
     );
   }
@@ -95,10 +213,10 @@ class AppTheme {
     // Get the primary color from the controller
     final primaryColor = themeController.primaryColor;
 
-    // Generate subtle background colors based on primary color
-    final scaffoldBackgroundColor = _getDarkBackground(primaryColor);
-    final cardColor = _getDarkCardColor(primaryColor);
-    final appBarColor = _getDarkAppBarColor(primaryColor);
+    // Polished dark theme colors
+    const scaffoldBackgroundColor = Color(0xFF0A0A0A);
+    const cardColor = Color(0xFF1A1A1A);
+    const surfaceColor = Color(0xFF242424);
 
     return ThemeData(
       useMaterial3: true,
@@ -106,116 +224,196 @@ class AppTheme {
       primaryColor: primaryColor,
       scaffoldBackgroundColor: scaffoldBackgroundColor,
 
-      // Apply color scheme - this is critical for modern Flutter
+      // Comprehensive color scheme
       colorScheme: ColorScheme.dark(
         primary: primaryColor,
         secondary: primaryColor,
-        onPrimary: Colors.white,
+        onPrimary: Colors.black,
         surface: cardColor,
-        onSurface: Colors.white,
-        primaryContainer: primaryColor.withValues(alpha: 0.15),
-        secondaryContainer: primaryColor.withValues(alpha: 0.1),
+        onSurface: const Color(0xFFE8E8E8),
+        surfaceContainerHighest: surfaceColor,
+        primaryContainer: primaryColor.withValues(alpha: 0.18),
+        secondaryContainer: primaryColor.withValues(alpha: 0.12),
+        error: const Color(0xFFEF5350),
+        onError: Colors.black,
       ),
 
-      // Apply color to AppBar
+      // AppBar theme
       appBarTheme: AppBarTheme(
-        backgroundColor: appBarColor,
+        backgroundColor: cardColor,
         elevation: 0,
+        scrolledUnderElevation: 2,
+        surfaceTintColor: primaryColor.withValues(alpha: 0.08),
         iconTheme: IconThemeData(color: primaryColor),
         titleTextStyle: TextStyle(
-          color: primaryColor,
-          fontWeight: FontWeight.bold,
+          color: const Color(0xFFE8E8E8),
+          fontWeight: FontWeight.w600,
           fontSize: 20,
+          letterSpacing: 0.15,
         ),
       ),
 
-      // Apply color to cards
+      // Card theme
       cardTheme: CardThemeData(
         color: cardColor,
+        surfaceTintColor: primaryColor.withValues(alpha: 0.05),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(cornerRadius),
+          borderRadius: BorderRadius.circular(16),
         ),
         elevation: 2,
+        shadowColor: Colors.black.withValues(alpha: 0.3),
       ),
 
-      // Apply color to buttons
+      // Input decoration theme
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: surfaceColor,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide.none,
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide.none,
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: primaryColor, width: 2),
+        ),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      ),
+
+      // Button themes
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           backgroundColor: primaryColor,
-          foregroundColor: Colors.white,
+          foregroundColor: Colors.black,
+          elevation: 2,
+          shadowColor: primaryColor.withValues(alpha: 0.4),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(cornerRadius),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+        ),
+      ),
+
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(
+          foregroundColor: primaryColor,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
           ),
         ),
       ),
 
-      // Apply color to floating action button
+      // FAB theme
       floatingActionButtonTheme: FloatingActionButtonThemeData(
         backgroundColor: primaryColor,
-        foregroundColor: Colors.white,
+        foregroundColor: Colors.black,
+        elevation: 4,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
       ),
 
-      // Apply color to text selection and cursors
+      // Icon theme
+      iconTheme: IconThemeData(
+        color: const Color(0xFFB0B0B0),
+        size: 24,
+      ),
+
+      // Divider theme
+      dividerTheme: const DividerThemeData(
+        color: Color(0xFF2A2A2A),
+        thickness: 1,
+        space: 1,
+      ),
+
+      // Bottom navigation bar theme
+      bottomNavigationBarTheme: BottomNavigationBarThemeData(
+        backgroundColor: cardColor,
+        selectedItemColor: primaryColor,
+        unselectedItemColor: const Color(0xFF757575),
+        type: BottomNavigationBarType.fixed,
+        elevation: 8,
+      ),
+
+      // Tab bar theme
+      tabBarTheme: TabBarThemeData(
+        labelColor: primaryColor,
+        unselectedLabelColor: const Color(0xFF9E9E9E),
+        indicatorColor: primaryColor,
+        indicatorSize: TabBarIndicatorSize.label,
+      ),
+
+      // Text selection theme
       textSelectionTheme: TextSelectionThemeData(
         cursorColor: primaryColor,
-        selectionColor: primaryColor.withValues(alpha: 0.3),
+        selectionColor: primaryColor.withValues(alpha: 0.4),
         selectionHandleColor: primaryColor,
       ),
 
-      // Apply color to switches, checkboxes
+      // Switch theme
       switchTheme: SwitchThemeData(
         thumbColor: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) return primaryColor;
-          return Colors.grey;
+          return const Color(0xFF616161);
         }),
         trackColor: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
             return primaryColor.withValues(alpha: 0.5);
           }
-          return Colors.grey.withValues(alpha: 0.3);
+          return const Color(0xFF424242);
         }),
+      ),
+
+      // Slider theme
+      sliderTheme: SliderThemeData(
+        activeTrackColor: primaryColor,
+        inactiveTrackColor: primaryColor.withValues(alpha: 0.3),
+        thumbColor: primaryColor,
+        overlayColor: primaryColor.withValues(alpha: 0.2),
+      ),
+
+      // Progress indicator theme
+      progressIndicatorTheme: ProgressIndicatorThemeData(
+        color: primaryColor,
+        linearTrackColor: primaryColor.withValues(alpha: 0.2),
+        circularTrackColor: primaryColor.withValues(alpha: 0.2),
+      ),
+
+      // Chip theme
+      chipTheme: ChipThemeData(
+        backgroundColor: surfaceColor,
+        selectedColor: primaryColor.withValues(alpha: 0.2),
+        labelStyle: const TextStyle(color: Color(0xFFE8E8E8)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+        ),
+      ),
+
+      // Dialog theme
+      dialogTheme: DialogThemeData(
+        backgroundColor: cardColor,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        elevation: 8,
+      ),
+
+      // Snackbar theme
+      snackBarTheme: SnackBarThemeData(
+        backgroundColor: surfaceColor,
+        contentTextStyle: const TextStyle(color: Color(0xFFE8E8E8)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+        ),
+        behavior: SnackBarBehavior.floating,
       ),
     );
   }
 
-  // Helper methods to generate subtle background colors
-  static Color _getLightBackground(Color primaryColor) {
-    final hsl = HSLColor.fromColor(primaryColor);
-    // Very light, highly desaturated version for background
-    return hsl.withLightness(0.97).withSaturation(0.10).toColor();
-  }
-
-  static Color _getLightCardColor(Color primaryColor) {
-    final hsl = HSLColor.fromColor(primaryColor);
-    // Slightly less light than background for card contrast
-    return hsl.withLightness(0.94).withSaturation(0.08).toColor();
-  }
-
-  static Color _getLightAppBarColor(Color primaryColor) {
-    final hsl = HSLColor.fromColor(primaryColor);
-    // Subtle tint for app bar
-    return hsl.withLightness(0.95).withSaturation(0.12).toColor();
-  }
-
-  static Color _getDarkBackground(Color primaryColor) {
-    final hsl = HSLColor.fromColor(primaryColor);
-    // Very dark, slightly tinted version for background
-    return hsl.withLightness(0.26).withSaturation(0.25).toColor();
-  }
-
-  static Color _getDarkCardColor(Color primaryColor) {
-    final hsl = HSLColor.fromColor(primaryColor);
-    // Slightly lighter than background for card contrast
-    return hsl.withLightness(0.26).withSaturation(0.25).toColor();
-  }
-
-  static Color _getDarkAppBarColor(Color primaryColor) {
-    final hsl = HSLColor.fromColor(primaryColor);
-    // Subtle tint for app bar in dark mode
-    return hsl.withLightness(0.26).withSaturation(0.25).toColor();
-  }
-
-  // Custom Colors for Music App - Dynamic based on theme
   static Color nowPlayingLight(Color primaryColor) {
     final hsl = HSLColor.fromColor(primaryColor);
     return hsl.withLightness(0.95).withSaturation(0.08).toColor();
@@ -263,6 +461,12 @@ class AppTheme {
     letterSpacing: 0,
   );
 
+  static const TextStyle headlineSmall = TextStyle(
+    fontSize: 20,
+    fontWeight: FontWeight.w500,
+    letterSpacing: 0.15,
+  );
+
   static const TextStyle bodyLarge = TextStyle(
     fontSize: 16,
     fontWeight: FontWeight.w400,
@@ -274,6 +478,12 @@ class AppTheme {
     fontWeight: FontWeight.w400,
     letterSpacing: 0.25,
   );
+
+  static const TextStyle bodySmall = TextStyle(
+    fontSize: 12,
+    fontWeight: FontWeight.w400,
+    letterSpacing: 0.4,
+  );
 }
 
 class AppColors {
@@ -281,37 +491,37 @@ class AppColors {
   static const Color primaryLight = Color(0xFF333333); // Default dark gray
   static const Color primaryDark = Color(0xFFE0E0E0); // Default light gray
 
-  // Theme color options - Updated with subtle, well-contrasting colors
+  // Polished theme color options with modern, accessible colors
   static const Map<String, ColorOption> themeColors = {
-    'gray': ColorOption(
-      name: 'Gray',
-      light: Color(0xFF333333),
-      dark: Color(0xFFE0E0E0),
-    ),
     'blue': ColorOption(
-      name: 'Blue',
-      light: Color(0xFF2962FF),
-      dark: Color(0xFF448AFF),
+      name: 'Ocean Blue',
+      light: Color(0xFF1976D2),
+      dark: Color(0xFF64B5F6),
     ),
     'purple': ColorOption(
-      name: 'Purple',
-      light: Color(0xFF6200EA),
-      dark: Color(0xFF7C4DFF),
+      name: 'Royal Purple',
+      light: Color(0xFF7B1FA2),
+      dark: Color(0xFFBA68C8),
     ),
-    'green': ColorOption(
-      name: 'Green',
-      light: Color(0xFF00C853),
-      dark: Color(0xFF69F0AE),
+    'teal': ColorOption(
+      name: 'Teal',
+      light: Color(0xFF00897B),
+      dark: Color(0xFF4DB6AC),
     ),
-    'red': ColorOption(
-      name: 'Red',
-      light: Color(0xFFD50000),
-      dark: Color(0xFFFF5252),
+    'indigo': ColorOption(
+      name: 'Indigo',
+      light: Color(0xFF3949AB),
+      dark: Color(0xFF7986CB),
     ),
-    'orange': ColorOption(
-      name: 'Orange',
-      light: Color(0xFFFF6D00),
-      dark: Color(0xFFFF9E40),
+    'pink': ColorOption(
+      name: 'Pink',
+      light: Color(0xFFC2185B),
+      dark: Color(0xFFF06292),
+    ),
+    'amber': ColorOption(
+      name: 'Amber',
+      light: Color(0xFFF57C00),
+      dark: Color(0xFFFFB74D),
     ),
   };
 }

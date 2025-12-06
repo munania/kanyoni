@@ -1,15 +1,17 @@
+import 'dart:ui';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:kanyoni/controllers/player_controller.dart';
 import 'package:kanyoni/features/albums/controller/album_controller.dart';
-import 'package:on_audio_query_forked/on_audio_query.dart';
+import 'package:kanyoni/features/now_playing/now_playing_panel.dart';
+import 'package:kanyoni/features/now_playing/now_playing_widgets.dart';
+import 'package:kanyoni/utils/helpers/helper_functions.dart';
+import 'package:kanyoni/utils/theme/theme.dart';
+import 'package:on_audio_query_pluse/on_audio_query.dart';
 import 'package:sliding_up_panel/sliding_up_panel.dart';
-
-import '../../now_playing.dart';
-import '../../utils/helpers/helper_functions.dart';
-import '../../utils/theme/theme.dart';
 
 class AlbumDetailsView extends StatefulWidget {
   final AlbumModel album;
@@ -72,14 +74,79 @@ class _AlbumDetailsViewState extends State<AlbumDetailsView>
           panelController: _panelController,
           playerController: _playerController,
         ),
-        body: CustomScrollView(
-          controller: _scrollController,
-          slivers: [
-            _buildAppBar(isDarkMode),
-            _buildHeaderSection(isDarkMode),
-            _buildSongList(isDarkMode),
-          ],
-        ),
+        body: Obx(() {
+          // Get current song for background artwork
+          final currentSongIndex = _playerController.currentSongIndex.value;
+          final hasCurrentSong = currentSongIndex >= 0 &&
+              currentSongIndex < _playerController.currentPlaylist.length;
+          final currentSong = hasCurrentSong
+              ? _playerController.currentPlaylist[currentSongIndex]
+              : null;
+
+          return Stack(
+            children: [
+              // Background Artwork with Blur
+              RepaintBoundary(
+                child: Stack(
+                  children: [
+                    if (currentSong != null)
+                      Positioned.fill(
+                        child: QueryArtworkWidget(
+                          id: currentSong.id,
+                          type: ArtworkType.AUDIO,
+                          quality: 100,
+                          size: 1000,
+                          artworkQuality: FilterQuality.high,
+                          nullArtworkWidget: Container(
+                            color: Theme.of(context).scaffoldBackgroundColor,
+                          ),
+                        ),
+                      )
+                    else
+                      const Positioned.fill(
+                        child: ThemedArtworkPlaceholder(
+                          iconSize: 120,
+                        ),
+                      ),
+                    // Blur Effect
+                    Positioned.fill(
+                      child: ClipRect(
+                        child: BackdropFilter(
+                          filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
+                          child: Container(
+                            color: Theme.of(context)
+                                .scaffoldBackgroundColor
+                                .withValues(
+                                  alpha: isDarkMode ? 0.7 : 0.85,
+                                ),
+                            child: Container(
+                              color: Theme.of(context)
+                                  .primaryColor
+                                  .withValues(alpha: 0.05),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // Content
+              CustomScrollView(
+                controller: _scrollController,
+                slivers: [
+                  _buildAppBar(isDarkMode),
+                  _buildHeaderSection(isDarkMode),
+                  _buildSongList(isDarkMode),
+                  const SliverToBoxAdapter(
+                    child: SizedBox(height: 120),
+                  ),
+                ],
+              ),
+            ],
+          );
+        }),
       ),
     );
   }
@@ -88,29 +155,72 @@ class _AlbumDetailsViewState extends State<AlbumDetailsView>
     return SliverAppBar(
       expandedHeight: 300,
       pinned: true,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      leading: Container(
+        margin: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: isDarkMode
+              ? Colors.black.withValues(alpha: 0.3)
+              : Colors.white.withValues(alpha: 0.3),
+          shape: BoxShape.circle,
+        ),
+        child: IconButton(
+          icon: Icon(
+            Icons.arrow_back,
+            size: 20,
+            color: isDarkMode ? Colors.white : Colors.black,
+          ),
+          onPressed: () => Navigator.pop(context),
+        ),
+      ),
       flexibleSpace: FlexibleSpaceBar(
         centerTitle: true,
+        titlePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         title: Text(
           widget.album.album,
           overflow: TextOverflow.ellipsis,
-          style: AppTheme.bodyLarge.copyWith(
+          maxLines: 1,
+          style: AppTheme.headlineMedium.copyWith(
             color: isDarkMode ? Colors.white : Colors.black,
+            fontSize: 18,
           ),
         ),
-        background: QueryArtworkWidget(
-          id: widget.album.id,
-          type: ArtworkType.ALBUM,
-          quality: 100,
-          size: 1000,
-          artworkQuality: FilterQuality.high,
-          nullArtworkWidget: Container(
-            color: isDarkMode ? Colors.grey[800] : Colors.grey[300],
-            child: Icon(
-              Iconsax.music_square,
-              size: 100,
-              color: Colors.grey,
+        background: Stack(
+          fit: StackFit.expand,
+          children: [
+            QueryArtworkWidget(
+              id: widget.album.id,
+              type: ArtworkType.ALBUM,
+              quality: 100,
+              size: 1000,
+              artworkQuality: FilterQuality.high,
+              nullArtworkWidget: Container(
+                color: isDarkMode ? Colors.grey[800] : Colors.grey[300],
+                child: const Icon(
+                  Iconsax.music_square,
+                  size: 100,
+                  color: Colors.grey,
+                ),
+              ),
             ),
-          ),
+            // Gradient Overlay
+            Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.transparent,
+                    Theme.of(context)
+                        .scaffoldBackgroundColor
+                        .withValues(alpha: 0.5),
+                    Theme.of(context).scaffoldBackgroundColor,
+                  ],
+                  stops: const [0.0, 0.7, 1.0],
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -206,38 +316,80 @@ class _SongListItem extends StatelessWidget {
   Widget build(BuildContext context) {
     final isFavorite = playerController.favoriteSongs.contains(song.id);
 
-    return ListTile(
-      leading: QueryArtworkWidget(
-        id: song.id,
-        type: ArtworkType.AUDIO,
-        nullArtworkWidget: Icon(
-          size: 50,
-          Iconsax.music,
-          color: Colors.grey,
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      child: Container(
+        decoration: BoxDecoration(
+          color: isDarkMode
+              ? Colors.white.withValues(alpha: 0.05)
+              : Colors.white.withValues(alpha: 0.6),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isDarkMode
+                ? Colors.white.withValues(alpha: 0.05)
+                : Colors.black.withValues(alpha: 0.02),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: ListTile(
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+          leading: ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: QueryArtworkWidget(
+              id: song.id,
+              type: ArtworkType.AUDIO,
+              nullArtworkWidget: Container(
+                width: 50,
+                height: 50,
+                decoration: BoxDecoration(
+                  color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  Iconsax.music,
+                  size: 24,
+                  color: Theme.of(context).primaryColor,
+                ),
+              ),
+              artworkWidth: 50,
+              artworkHeight: 50,
+              artworkFit: BoxFit.cover,
+            ),
+          ),
+          title: Text(
+            song.title,
+            style: AppTheme.bodyLarge.copyWith(fontWeight: FontWeight.w600),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          subtitle: Text(
+            song.artist ?? 'Unknown Artist',
+            style: AppTheme.bodyMedium.copyWith(
+              color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          trailing: IconButton(
+            icon: Icon(
+              isFavorite ? Iconsax.heart5 : Iconsax.heart,
+              color: isFavorite ? Theme.of(context).primaryColor : null,
+            ),
+            onPressed: () => playerController.toggleFavorite(song.id),
+          ),
+          onTap: () {
+            playerController.currentPlaylist.value = albumSongs;
+            playerController.playSong(index);
+          },
         ),
       ),
-      title: Text(
-        song.title,
-        style: AppTheme.bodyLarge,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-      ),
-      subtitle: Text(
-        song.artist ?? 'Unknown Artist',
-        style: AppTheme.bodyMedium,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-      ),
-      trailing: IconButton(
-        icon: Icon(
-          isFavorite ? Icons.favorite : Icons.favorite_border,
-        ),
-        onPressed: () => playerController.toggleFavorite(song.id),
-      ),
-      onTap: () {
-        playerController.currentPlaylist.value = albumSongs;
-        playerController.playSong(index);
-      },
     );
   }
 }

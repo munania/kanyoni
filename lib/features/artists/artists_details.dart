@@ -1,13 +1,15 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:kanyoni/controllers/player_controller.dart';
 import 'package:kanyoni/features/artists/controller/artists_controller.dart';
-import 'package:on_audio_query_forked/on_audio_query.dart';
+import 'package:kanyoni/features/now_playing/now_playing_panel.dart';
+import 'package:kanyoni/features/now_playing/now_playing_widgets.dart';
+import 'package:kanyoni/utils/theme/theme.dart';
+import 'package:on_audio_query_pluse/on_audio_query.dart';
 import 'package:sliding_up_panel/sliding_up_panel.dart';
-
-import '../../now_playing.dart';
-import '../../utils/theme/theme.dart';
 
 class ArtistsDetailsView extends StatefulWidget {
   final ArtistModel artist;
@@ -67,14 +69,79 @@ class _ArtistsDetailsViewState extends State<ArtistsDetailsView>
           panelController: _panelController,
           playerController: _playerController,
         ),
-        body: CustomScrollView(
-          controller: _scrollController,
-          slivers: [
-            _buildAppBar(isDarkMode),
-            _buildHeaderSection(isDarkMode),
-            _buildSongList(isDarkMode),
-          ],
-        ),
+        body: Obx(() {
+          // Get current song for background artwork
+          final currentSongIndex = _playerController.currentSongIndex.value;
+          final hasCurrentSong = currentSongIndex >= 0 &&
+              currentSongIndex < _playerController.currentPlaylist.length;
+          final currentSong = hasCurrentSong
+              ? _playerController.currentPlaylist[currentSongIndex]
+              : null;
+
+          return Stack(
+            children: [
+              // Background Artwork with Blur
+              RepaintBoundary(
+                child: Stack(
+                  children: [
+                    if (currentSong != null)
+                      Positioned.fill(
+                        child: QueryArtworkWidget(
+                          id: currentSong.id,
+                          type: ArtworkType.AUDIO,
+                          quality: 100,
+                          size: 1000,
+                          artworkQuality: FilterQuality.high,
+                          nullArtworkWidget: Container(
+                            color: Theme.of(context).scaffoldBackgroundColor,
+                          ),
+                        ),
+                      )
+                    else
+                      const Positioned.fill(
+                        child: ThemedArtworkPlaceholder(
+                          iconSize: 120,
+                        ),
+                      ),
+                    // Blur Effect
+                    Positioned.fill(
+                      child: ClipRect(
+                        child: BackdropFilter(
+                          filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
+                          child: Container(
+                            color: Theme.of(context)
+                                .scaffoldBackgroundColor
+                                .withValues(
+                                  alpha: isDarkMode ? 0.7 : 0.85,
+                                ),
+                            child: Container(
+                              color: Theme.of(context)
+                                  .primaryColor
+                                  .withValues(alpha: 0.05),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // Content
+              CustomScrollView(
+                controller: _scrollController,
+                slivers: [
+                  _buildAppBar(isDarkMode),
+                  _buildHeaderSection(isDarkMode),
+                  _buildSongList(isDarkMode),
+                  const SliverToBoxAdapter(
+                    child: SizedBox(height: 120),
+                  ),
+                ],
+              ),
+            ],
+          );
+        }),
       ),
     );
   }
@@ -83,29 +150,72 @@ class _ArtistsDetailsViewState extends State<ArtistsDetailsView>
     return SliverAppBar(
       expandedHeight: 300,
       pinned: true,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      leading: Container(
+        margin: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: isDarkMode
+              ? Colors.black.withValues(alpha: 0.3)
+              : Colors.white.withValues(alpha: 0.3),
+          shape: BoxShape.circle,
+        ),
+        child: IconButton(
+          icon: Icon(
+            Icons.arrow_back,
+            size: 20,
+            color: isDarkMode ? Colors.white : Colors.black,
+          ),
+          onPressed: () => Navigator.pop(context),
+        ),
+      ),
       flexibleSpace: FlexibleSpaceBar(
         centerTitle: true,
+        titlePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         title: Text(
           widget.artist.artist,
           overflow: TextOverflow.ellipsis,
-          style: AppTheme.bodyLarge.copyWith(
+          maxLines: 1,
+          style: AppTheme.headlineMedium.copyWith(
             color: isDarkMode ? Colors.white : Colors.black,
+            fontSize: 18,
           ),
         ),
-        background: QueryArtworkWidget(
-          id: widget.artist.id,
-          type: ArtworkType.ARTIST,
-          quality: 100,
-          size: 1000,
-          artworkQuality: FilterQuality.high,
-          nullArtworkWidget: Container(
-            color: isDarkMode ? Colors.grey[800] : Colors.grey[300],
-            child: Icon(
-              Iconsax.user,
-              size: 100,
-              color: Colors.grey,
+        background: Stack(
+          fit: StackFit.expand,
+          children: [
+            QueryArtworkWidget(
+              id: widget.artist.id,
+              type: ArtworkType.ARTIST,
+              quality: 100,
+              size: 1000,
+              artworkQuality: FilterQuality.high,
+              nullArtworkWidget: Container(
+                color: isDarkMode ? Colors.grey[800] : Colors.grey[300],
+                child: const Icon(
+                  Iconsax.user,
+                  size: 100,
+                  color: Colors.grey,
+                ),
+              ),
             ),
-          ),
+            // Gradient Overlay
+            Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.transparent,
+                    Theme.of(context)
+                        .scaffoldBackgroundColor
+                        .withValues(alpha: 0.5),
+                    Theme.of(context).scaffoldBackgroundColor,
+                  ],
+                  stops: const [0.0, 0.7, 1.0],
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -162,11 +272,7 @@ class _ArtistsDetailsViewState extends State<ArtistsDetailsView>
     if (_isLoading) {
       return SliverFillRemaining(
         child: Center(
-          child: CircularProgressIndicator(
-              // color: isDarkMode
-              //     ? AppTheme.playerControlsDark
-              //     : AppTheme.playerControlsLight,
-              ),
+          child: CircularProgressIndicator(),
         ),
       );
     }
@@ -209,43 +315,84 @@ class _SongListItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListTile(
-      leading: QueryArtworkWidget(
-        id: song.albumId!,
-        type: ArtworkType.ALBUM,
-        nullArtworkWidget: Icon(
-          Iconsax.music,
-          size: 50,
-          color: Colors.grey,
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      child: Container(
+        decoration: BoxDecoration(
+          color: isDarkMode
+              ? Colors.white.withValues(alpha: 0.05)
+              : Colors.white.withValues(alpha: 0.6),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isDarkMode
+                ? Colors.white.withValues(alpha: 0.05)
+                : Colors.black.withValues(alpha: 0.02),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: ListTile(
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+          leading: ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: QueryArtworkWidget(
+              id: song.albumId!,
+              type: ArtworkType.ALBUM,
+              nullArtworkWidget: Container(
+                width: 50,
+                height: 50,
+                decoration: BoxDecoration(
+                  color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  Iconsax.music,
+                  size: 24,
+                  color: Theme.of(context).primaryColor,
+                ),
+              ),
+              artworkWidth: 50,
+              artworkHeight: 50,
+              artworkFit: BoxFit.cover,
+            ),
+          ),
+          title: Text(
+            song.title,
+            style: AppTheme.bodyLarge.copyWith(fontWeight: FontWeight.w600),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          subtitle: Text(
+            song.album ?? 'Unknown Album',
+            style: AppTheme.bodyMedium.copyWith(
+              color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          trailing: IconButton(
+            icon: Icon(
+              playerController.favoriteSongs.contains(song.id)
+                  ? Iconsax.heart5
+                  : Iconsax.heart,
+              color: playerController.favoriteSongs.contains(song.id)
+                  ? Theme.of(context).primaryColor
+                  : null,
+            ),
+            onPressed: () => playerController.toggleFavorite(song.id),
+          ),
+          onTap: () {
+            playerController.currentPlaylist.value = artistSongs;
+            playerController.playSong(index);
+          },
         ),
       ),
-      title: Text(
-        song.title,
-        style: AppTheme.bodyLarge,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-      ),
-      subtitle: Text(
-        song.album ?? 'Unknown Album',
-        style: AppTheme.bodyMedium,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-      ),
-      trailing: IconButton(
-        icon: Icon(
-          playerController.favoriteSongs.contains(song.id)
-              ? Icons.favorite
-              : Icons.favorite_border,
-          // color: playerController.favoriteSongs.contains(song.id)
-          //     ? AppTheme.playerControlsDark
-          //     : null,
-        ),
-        onPressed: () => playerController.toggleFavorite(song.id),
-      ),
-      onTap: () {
-        playerController.currentPlaylist.value = artistSongs;
-        playerController.playSong(index);
-      },
     );
   }
 }

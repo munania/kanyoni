@@ -1,10 +1,11 @@
 import 'dart:async';
+import 'dart:io' show Platform;
 
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:kanyoni/utils/services/shared_prefs_service.dart';
-import 'package:on_audio_query_forked/on_audio_query.dart';
+import 'package:on_audio_query_pluse/on_audio_query.dart';
 import 'package:rxdart/rxdart.dart';
 
 import 'base_controller.dart';
@@ -18,7 +19,7 @@ class PlayerController extends BaseController {
   static const String kShuffleModeKey = 'shuffle_mode';
   static const String kRepeatModeKey = 'repeat_mode';
   static const String kLastSaveTimeKey = 'last_save_time';
-  static const String kFavoriteSongsKey = 'favoriteSongs'; // Added key
+  static const String kFavoriteSongsKey = 'favoriteSongs';
   static const Duration kMaxRestoreThreshold = Duration(hours: 24);
   static const String kLastAppCloseTimeKey = 'last_app_close_time';
   static const Duration kScrollPositionRestoreThreshold = Duration(minutes: 30);
@@ -32,6 +33,32 @@ class PlayerController extends BaseController {
   var volume = 1.0.obs;
   var listScrollOffset = 0.0.obs; // For tracking list scroll position
   var currentSortType = SongSortType.DATE_ADDED.obs;
+
+  // Computed getter for the currently active song
+  SongModel? get activeSong {
+    if (currentPlaylist.isEmpty ||
+        currentSongIndex.value < 0 ||
+        currentSongIndex.value >= currentPlaylist.length) {
+      return null;
+    }
+    return currentPlaylist[currentSongIndex.value];
+  }
+
+  // Equalizer Observables
+  var equalizerEnabled = false.obs;
+  var isEqualizerInitialized = false.obs;
+  var equalizerBands = <int>[].obs;
+  var equalizerCenterFreqs = <int>[].obs;
+  var equalizerPresets = <String>[].obs;
+  var currentPreset = ''.obs;
+  var minBandLevel = 0.0.obs;
+  var maxBandLevel = 0.0.obs;
+
+  // Sleep Timer Observables
+  var sleepTimerActive = false.obs;
+  var sleepTimerDuration = 0.obs; // in seconds
+  var sleepTimerRemaining = 0.obs; // in seconds
+  Timer? _sleepTimer;
 
   Future<int?> get lastAppCloseTime async =>
       (await prefs).getInt(kLastAppCloseTimeKey);
@@ -48,13 +75,18 @@ class PlayerController extends BaseController {
     super.onInit();
     _initializePreferences();
     _initializeAudioPlayer();
-    // fetchAllSongs(); // Removed call from here
+
+    // Initialize equalizer when audio session ID is available
+    audioPlayer.androidAudioSessionIdStream.listen((sessionId) {
+      if (sessionId != null) {
+        _initializeEqualizer(sessionId);
+      }
+    });
   }
 
   Future<void> _initializePreferences() async {
     try {
-      // _prefs = await SharedPreferences.getInstance(); // Removed
-      await _restoreState(); // Ensure _restoreState is awaited
+      await _restoreState();
     } catch (e) {
       if (kDebugMode) {
         print('Error initializing preferences: $e');
@@ -105,12 +137,6 @@ class PlayerController extends BaseController {
         favoriteSongs.value =
             favoriteSongIdsAsStrings.map((id) => int.parse(id)).toList();
       }
-
-      // Last song restoration is now handled by fetchAllSongs
-      // if (songs.isEmpty) { // Check if songs are not loaded
-      // await fetchAllSongs(); // Call fetchAllSongs if songs are not loaded
-      // }
-      // await _restoreLastSong();
     } catch (e) {
       if (kDebugMode) {
         print('Error restoring state: $e');
@@ -161,13 +187,6 @@ class PlayerController extends BaseController {
       if (kDebugMode) {
         print('Songs refreshed successfully.');
       }
-
-      // Optional: If you want to re-apply the last song state after a refresh
-      // if (_shouldAttemptRestoreLastSong) {
-      //   await _restoreLastSong();
-      // }
-      // However, this might be unexpected during a manual refresh.
-      // For now, let's keep it simple and not restore the last song automatically on manual refresh.
     } catch (e) {
       _songsLoadedSuccessfully = false; // Explicitly set on error
       if (kDebugMode) {
@@ -466,7 +485,18 @@ class PlayerController extends BaseController {
     if (audioPlayer.playing) {
       audioPlayer.pause();
     } else {
-      audioPlayer.play();
+      // Check if the player has a source loaded
+      if ((audioPlayer.processingState == ProcessingState.idle ||
+              audioPlayer.duration == null) &&
+          currentPlaylist.isNotEmpty &&
+          currentSongIndex.value >= 0 &&
+          currentSongIndex.value < currentPlaylist.length) {
+        // If not loaded but we have a valid song in the playlist, play it
+        playSong(currentSongIndex.value);
+      } else {
+        // Otherwise just resume (or try to play if already loaded)
+        audioPlayer.play();
+      }
     }
   }
 
@@ -601,6 +631,7 @@ class PlayerController extends BaseController {
   @override
   void onClose() {
     _scrollDebounceTimer?.cancel();
+    cancelSleepTimer();
     _saveState();
     audioPlayer.dispose();
     super.onClose();
@@ -633,6 +664,179 @@ class PlayerController extends BaseController {
           blacklistedFolders.any((folder) => song.data.startsWith(folder));
       return isLongEnough && !isInBlacklistedFolder;
     }).toList();
+  }
+
+  // Equalizer Methods
+  Future<void> _initializeEqualizer(int sessionId) async {
+    if (!Platform.isAndroid || androidEqualizer == null) return;
+
+    try {
+      await androidEqualizer!.setEnabled(true);
+
+      final parameters = await androidEqualizer!.parameters;
+      minBandLevel.value = parameters.minDecibels;
+      maxBandLevel.value = parameters.maxDecibels;
+
+      equalizerCenterFreqs.clear();
+      equalizerBands.clear();
+
+      for (var band in parameters.bands) {
+        equalizerCenterFreqs.add(band.centerFrequency.toInt());
+        equalizerBands.add(band.gain.toInt());
+
+        band.gainStream.listen((gain) {
+          if (equalizerBands.length > band.index) {
+            equalizerBands[band.index] = gain.toInt();
+            equalizerBands.refresh();
+          }
+        });
+      }
+
+      equalizerPresets.value = ['Custom', 'Flat', 'Bass Boost', 'Treble Boost'];
+      currentPreset.value = 'Custom';
+      equalizerEnabled.value = true;
+      isEqualizerInitialized.value = true;
+
+      if (kDebugMode) {
+        print('Equalizer initialized with ${parameters.bands.length} bands');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error initializing equalizer: $e');
+      }
+      isEqualizerInitialized.value = false;
+    }
+  }
+
+  Future<void> toggleEqualizer(bool enabled) async {
+    if (!isEqualizerInitialized.value || androidEqualizer == null) return;
+
+    try {
+      await androidEqualizer!.setEnabled(enabled);
+      equalizerEnabled.value = enabled;
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error toggling equalizer: $e');
+      }
+    }
+  }
+
+  Future<void> setBandLevel(int bandId, double level) async {
+    if (!isEqualizerInitialized.value || androidEqualizer == null) return;
+
+    try {
+      final parameters = await androidEqualizer!.parameters;
+      if (bandId < parameters.bands.length) {
+        await parameters.bands[bandId].setGain(level);
+        currentPreset.value = 'Custom';
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error setting band level: $e');
+      }
+    }
+  }
+
+  Future<void> setPreset(String presetName) async {
+    if (!isEqualizerInitialized.value || androidEqualizer == null) return;
+
+    try {
+      final parameters = await androidEqualizer!.parameters;
+
+      List<double> gains;
+      switch (presetName) {
+        case 'Flat':
+          gains = List.filled(parameters.bands.length, 0.0);
+          break;
+        case 'Bass Boost':
+          gains = List.generate(parameters.bands.length, (index) {
+            if (index < 2) return maxBandLevel.value * 0.6;
+            return 0.0;
+          });
+          break;
+        case 'Treble Boost':
+          gains = List.generate(parameters.bands.length, (index) {
+            if (index > parameters.bands.length - 3) {
+              return maxBandLevel.value * 0.6;
+            }
+            return 0.0;
+          });
+          break;
+        case 'Custom':
+        default:
+          return;
+      }
+
+      for (int i = 0; i < parameters.bands.length && i < gains.length; i++) {
+        await parameters.bands[i].setGain(gains[i]);
+      }
+
+      await Future.delayed(const Duration(milliseconds: 100));
+      equalizerBands.refresh();
+      currentPreset.value = presetName;
+
+      if (kDebugMode) {
+        print('Applied preset: $presetName');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error setting preset: $e');
+      }
+    }
+  }
+
+  // Sleep Timer Methods
+  void startSleepTimer(int minutes) {
+    cancelSleepTimer(); // Cancel any existing timer
+
+    sleepTimerDuration.value = minutes * 60;
+    sleepTimerRemaining.value = minutes * 60;
+    sleepTimerActive.value = true;
+
+    _sleepTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (sleepTimerRemaining.value > 0) {
+        sleepTimerRemaining.value--;
+      } else {
+        _onSleepTimerExpired();
+      }
+    });
+
+    if (kDebugMode) {
+      print('Sleep timer started: $minutes minutes');
+    }
+  }
+
+  void cancelSleepTimer() {
+    _sleepTimer?.cancel();
+    _sleepTimer = null;
+    sleepTimerActive.value = false;
+    sleepTimerDuration.value = 0;
+    sleepTimerRemaining.value = 0;
+
+    if (kDebugMode) {
+      print('Sleep timer cancelled');
+    }
+  }
+
+  void _onSleepTimerExpired() {
+    if (kDebugMode) {
+      print('Sleep timer expired - pausing playback');
+    }
+
+    cancelSleepTimer();
+
+    // Pause playback
+    if (isPlaying.value) {
+      togglePlayPause();
+    }
+
+    // Show notification
+    Get.snackbar(
+      'Sleep Timer',
+      'Timer expired - playback paused',
+      snackPosition: SnackPosition.BOTTOM,
+      duration: const Duration(seconds: 3),
+    );
   }
 }
 
