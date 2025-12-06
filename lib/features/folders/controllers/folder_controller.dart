@@ -1,7 +1,7 @@
 import 'package:get/get.dart';
 import 'package:kanyoni/controllers/player_controller.dart';
 import 'package:kanyoni/utils/services/shared_prefs_service.dart';
-import 'package:on_audio_query_forked/on_audio_query.dart';
+import 'package:on_audio_query_pluse/on_audio_query.dart';
 
 class FolderController extends GetxController {
   final OnAudioQuery audioQuery = OnAudioQuery();

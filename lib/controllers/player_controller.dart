@@ -5,7 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:kanyoni/utils/services/shared_prefs_service.dart';
-import 'package:on_audio_query_forked/on_audio_query.dart';
+import 'package:on_audio_query_pluse/on_audio_query.dart';
 import 'package:rxdart/rxdart.dart';
 
 import 'base_controller.dart';
@@ -19,7 +19,7 @@ class PlayerController extends BaseController {
   static const String kShuffleModeKey = 'shuffle_mode';
   static const String kRepeatModeKey = 'repeat_mode';
   static const String kLastSaveTimeKey = 'last_save_time';
-  static const String kFavoriteSongsKey = 'favoriteSongs'; // Added key
+  static const String kFavoriteSongsKey = 'favoriteSongs';
   static const Duration kMaxRestoreThreshold = Duration(hours: 24);
   static const String kLastAppCloseTimeKey = 'last_app_close_time';
   static const Duration kScrollPositionRestoreThreshold = Duration(minutes: 30);
@@ -82,14 +82,11 @@ class PlayerController extends BaseController {
         _initializeEqualizer(sessionId);
       }
     });
-
-    // fetchAllSongs(); // Removed call from here
   }
 
   Future<void> _initializePreferences() async {
     try {
-      // _prefs = await SharedPreferences.getInstance(); // Removed
-      await _restoreState(); // Ensure _restoreState is awaited
+      await _restoreState();
     } catch (e) {
       if (kDebugMode) {
         print('Error initializing preferences: $e');
@@ -140,12 +137,6 @@ class PlayerController extends BaseController {
         favoriteSongs.value =
             favoriteSongIdsAsStrings.map((id) => int.parse(id)).toList();
       }
-
-      // Last song restoration is now handled by fetchAllSongs
-      // if (songs.isEmpty) { // Check if songs are not loaded
-      // await fetchAllSongs(); // Call fetchAllSongs if songs are not loaded
-      // }
-      // await _restoreLastSong();
     } catch (e) {
       if (kDebugMode) {
         print('Error restoring state: $e');
@@ -196,13 +187,6 @@ class PlayerController extends BaseController {
       if (kDebugMode) {
         print('Songs refreshed successfully.');
       }
-
-      // Optional: If you want to re-apply the last song state after a refresh
-      // if (_shouldAttemptRestoreLastSong) {
-      //   await _restoreLastSong();
-      // }
-      // However, this might be unexpected during a manual refresh.
-      // For now, let's keep it simple and not restore the last song automatically on manual refresh.
     } catch (e) {
       _songsLoadedSuccessfully = false; // Explicitly set on error
       if (kDebugMode) {
@@ -501,7 +485,18 @@ class PlayerController extends BaseController {
     if (audioPlayer.playing) {
       audioPlayer.pause();
     } else {
-      audioPlayer.play();
+      // Check if the player has a source loaded
+      if ((audioPlayer.processingState == ProcessingState.idle ||
+              audioPlayer.duration == null) &&
+          currentPlaylist.isNotEmpty &&
+          currentSongIndex.value >= 0 &&
+          currentSongIndex.value < currentPlaylist.length) {
+        // If not loaded but we have a valid song in the playlist, play it
+        playSong(currentSongIndex.value);
+      } else {
+        // Otherwise just resume (or try to play if already loaded)
+        audioPlayer.play();
+      }
     }
   }
 

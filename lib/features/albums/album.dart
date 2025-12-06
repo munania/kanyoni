@@ -7,7 +7,7 @@ import 'package:kanyoni/controllers/player_controller.dart';
 import 'package:kanyoni/features/albums/controller/album_controller.dart';
 import 'package:kanyoni/features/now_playing/now_playing_widgets.dart';
 import 'package:kanyoni/utils/theme/theme.dart';
-import 'package:on_audio_query_forked/on_audio_query.dart';
+import 'package:on_audio_query_pluse/on_audio_query.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'album_card.dart';

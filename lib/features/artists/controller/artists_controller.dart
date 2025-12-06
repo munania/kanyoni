@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:get/get.dart';
-import 'package:on_audio_query_forked/on_audio_query.dart';
+import 'package:on_audio_query_pluse/on_audio_query.dart';
 
 import '../../../controllers/base_controller.dart';
 import '../../../controllers/player_controller.dart';
@@ -9,6 +9,7 @@ import '../../../controllers/player_controller.dart';
 class ArtistController extends BaseController {
   final RxList<ArtistModel> artists = <ArtistModel>[].obs;
   final RxMap<int, List<SongModel>> artistSongs = <int, List<SongModel>>{}.obs;
+  final RxMap<int, bool> isLoadingArtistSongs = <int, bool>{}.obs;
   PlayerController playerController = Get.find<PlayerController>();
 
   Future<void> fetchArtists() async {
@@ -25,18 +26,22 @@ class ArtistController extends BaseController {
     if (artistSongs[artistId] != null && artistSongs[artistId]!.isNotEmpty) {
       return; // Already loaded
     }
-    // TODO: Consider adding isLoadingArtistSongs[artistId] = true; if UI needs it
 
-    final queriedSongs = await audioQuery.queryAudiosFrom(
-      AudiosFromType.ARTIST_ID,
-      artistId,
-      sortType: SongSortType.DATE_ADDED, // Or your preferred sort order
-      orderType: OrderType.ASC_OR_SMALLER,
-    );
-    artistSongs[artistId] =
-        await playerController.applySongFilters(queriedSongs);
+    isLoadingArtistSongs[artistId] = true;
 
-    // TODO: Consider adding isLoadingArtistSongs[artistId] = false;
+    try {
+      final queriedSongs = await audioQuery.queryAudiosFrom(
+        AudiosFromType.ARTIST_ID,
+        artistId,
+        sortType: SongSortType.DATE_ADDED, // Or your preferred sort order
+        orderType: OrderType.ASC_OR_SMALLER,
+      );
+      artistSongs[artistId] =
+          await playerController.applySongFilters(queriedSongs);
+    } finally {
+      isLoadingArtistSongs[artistId] = false;
+    }
+
     artistSongs.refresh(); // Notify listeners
   }
 

@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:kanyoni/utils/helpers/helper_functions.dart';
 import 'package:kanyoni/utils/theme/theme.dart';
-import 'package:on_audio_query_forked/on_audio_query.dart';
+import 'package:on_audio_query_pluse/on_audio_query.dart';
 
 class SongDetails extends StatelessWidget {
   final SongModel currentSong;

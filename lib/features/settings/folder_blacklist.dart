@@ -8,7 +8,7 @@ import 'package:kanyoni/features/folders/controllers/folder_controller.dart';
 import 'package:kanyoni/features/now_playing/now_playing_widgets.dart';
 import 'package:kanyoni/utils/services/shared_prefs_service.dart';
 import 'package:kanyoni/utils/theme/theme.dart';
-import 'package:on_audio_query_forked/on_audio_query.dart';
+import 'package:on_audio_query_pluse/on_audio_query.dart';
 
 class FolderBlacklistScreen extends StatefulWidget {
   const FolderBlacklistScreen({super.key});

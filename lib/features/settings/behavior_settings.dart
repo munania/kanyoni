@@ -8,7 +8,7 @@ import 'package:kanyoni/controllers/player_controller.dart';
 import 'package:kanyoni/features/now_playing/now_playing_widgets.dart';
 import 'package:kanyoni/features/settings/folder_blacklist.dart';
 import 'package:kanyoni/utils/services/shared_prefs_service.dart';
-import 'package:on_audio_query_forked/on_audio_query.dart';
+import 'package:on_audio_query_pluse/on_audio_query.dart';
 
 class BehaviorSettingsScreen extends StatefulWidget {
   const BehaviorSettingsScreen({super.key});

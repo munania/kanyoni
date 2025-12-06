@@ -8,7 +8,7 @@ import 'package:kanyoni/features/genres/controller/genres_controller.dart';
 import 'package:kanyoni/features/now_playing/now_playing_panel.dart';
 import 'package:kanyoni/features/now_playing/now_playing_widgets.dart';
 import 'package:kanyoni/utils/theme/theme.dart';
-import 'package:on_audio_query_forked/on_audio_query.dart';
+import 'package:on_audio_query_pluse/on_audio_query.dart';
 import 'package:sliding_up_panel/sliding_up_panel.dart';
 
 class GenreDetailsView extends StatefulWidget {
@@ -29,7 +29,7 @@ class _GenreDetailsViewState extends State<GenreDetailsView>
   late final PlayerController _playerController;
   final _panelController = PanelController();
   final _scrollController = ScrollController();
-  final double _itemExtent = 88.0; // Increased height for padding
+  final double _itemExtent = 88.0;
   late List<SongModel> _genreSongs;
   bool _isLoading = true;
 
@@ -139,6 +139,9 @@ class _GenreDetailsViewState extends State<GenreDetailsView>
                   _buildAppBar(isDarkMode),
                   _buildHeaderSection(isDarkMode),
                   _buildSongList(isDarkMode),
+                  const SliverToBoxAdapter(
+                    child: SizedBox(height: 120),
+                  ),
                 ],
               ),
             ],
@@ -152,23 +155,72 @@ class _GenreDetailsViewState extends State<GenreDetailsView>
     return SliverAppBar(
       expandedHeight: 300,
       pinned: true,
-      backgroundColor: Colors.transparent,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      leading: Container(
+        margin: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: isDarkMode
+              ? Colors.black.withValues(alpha: 0.3)
+              : Colors.white.withValues(alpha: 0.3),
+          shape: BoxShape.circle,
+        ),
+        child: IconButton(
+          icon: Icon(
+            Icons.arrow_back,
+            size: 20,
+            color: isDarkMode ? Colors.white : Colors.black,
+          ),
+          onPressed: () => Navigator.pop(context),
+        ),
+      ),
       flexibleSpace: FlexibleSpaceBar(
         centerTitle: true,
+        titlePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         title: Text(
           widget.genre.genre,
           overflow: TextOverflow.ellipsis,
-          style: AppTheme.bodyLarge.copyWith(
+          maxLines: 1,
+          style: AppTheme.headlineMedium.copyWith(
             color: isDarkMode ? Colors.white : Colors.black,
+            fontSize: 18,
           ),
         ),
-        background: QueryArtworkWidget(
-          id: widget.genre.id,
-          type: ArtworkType.ARTIST,
-          nullArtworkWidget: Container(
-            color: isDarkMode ? Colors.grey[800] : Colors.grey[300],
-            child: const Icon(Iconsax.user, size: 100, color: Colors.grey),
-          ),
+        background: Stack(
+          fit: StackFit.expand,
+          children: [
+            QueryArtworkWidget(
+              id: widget.genre.id,
+              type: ArtworkType.GENRE,
+              quality: 100,
+              size: 1000,
+              artworkQuality: FilterQuality.high,
+              nullArtworkWidget: Container(
+                color: isDarkMode ? Colors.grey[800] : Colors.grey[300],
+                child: const Icon(
+                  Iconsax.music,
+                  size: 100,
+                  color: Colors.grey,
+                ),
+              ),
+            ),
+            // Gradient Overlay
+            Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.transparent,
+                    Theme.of(context)
+                        .scaffoldBackgroundColor
+                        .withValues(alpha: 0.5),
+                    Theme.of(context).scaffoldBackgroundColor,
+                  ],
+                  stops: const [0.0, 0.7, 1.0],
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );

@@ -1,5 +1,6 @@
 import 'dart:ui';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:iconsax/iconsax.dart';
@@ -10,7 +11,7 @@ import 'package:kanyoni/features/playlists/controller/playlists_controller.dart'
 import 'package:kanyoni/features/playlists/playlist_song_card.dart';
 import 'package:kanyoni/utils/services/shared_prefs_service.dart';
 import 'package:kanyoni/utils/theme/theme.dart';
-import 'package:on_audio_query_forked/on_audio_query.dart';
+import 'package:on_audio_query_pluse/on_audio_query.dart';
 import 'package:sliding_up_panel/sliding_up_panel.dart';
 
 class PlaylistDetailsView extends StatefulWidget {
@@ -130,7 +131,7 @@ class _PlaylistDetailsViewState extends State<PlaylistDetailsView>
                   _buildSongList(isDarkMode),
                   SliverToBoxAdapter(
                     child: SizedBox(
-                      height: 60,
+                      height: 120,
                     ),
                   )
                 ],
@@ -144,38 +145,93 @@ class _PlaylistDetailsViewState extends State<PlaylistDetailsView>
 
   SliverAppBar _buildAppBar(bool isDarkMode) {
     return SliverAppBar(
-      actions: [
-        IconButton(
-          icon: const Icon(Iconsax.add_square, size: 30),
-          onPressed: () => _showAddToPlaylistDialog(),
-        ),
-      ],
       expandedHeight: 300,
       pinned: true,
-      backgroundColor: Colors.transparent,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      leading: Container(
+        margin: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: isDarkMode
+              ? Colors.black.withValues(alpha: 0.3)
+              : Colors.white.withValues(alpha: 0.3),
+          shape: BoxShape.circle,
+        ),
+        child: IconButton(
+          icon: Icon(
+            Icons.arrow_back,
+            size: 20,
+            color: isDarkMode ? Colors.white : Colors.black,
+          ),
+          onPressed: () => Navigator.pop(context),
+        ),
+      ),
+      actions: [
+        Container(
+          margin: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: isDarkMode
+                ? Colors.black.withValues(alpha: 0.3)
+                : Colors.white.withValues(alpha: 0.3),
+            shape: BoxShape.circle,
+          ),
+          child: IconButton(
+            icon: Icon(
+              Iconsax.add_square,
+              size: 20,
+              color: isDarkMode ? Colors.white : Colors.black,
+            ),
+            onPressed: () => _showAddToPlaylistDialog(),
+          ),
+        ),
+      ],
       flexibleSpace: FlexibleSpaceBar(
         centerTitle: true,
+        titlePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         title: Text(
           widget.playlist.playlist.replaceAll(' [kanyoni]', ''),
           overflow: TextOverflow.ellipsis,
-          style: AppTheme.bodyLarge.copyWith(
+          maxLines: 1,
+          style: AppTheme.headlineMedium.copyWith(
             color: isDarkMode ? Colors.white : Colors.black,
+            fontSize: 18,
           ),
         ),
-        background: QueryArtworkWidget(
-          id: widget.playlist.id,
-          type: ArtworkType.ARTIST,
-          quality: 100,
-          size: 1000,
-          artworkQuality: FilterQuality.high,
-          nullArtworkWidget: Container(
-            color: isDarkMode ? Colors.grey[800] : Colors.grey[300],
-            child: Icon(
-              Iconsax.user,
-              size: 100,
-              color: Colors.grey,
+        background: Stack(
+          fit: StackFit.expand,
+          children: [
+            QueryArtworkWidget(
+              id: widget.playlist.id,
+              type: ArtworkType.ARTIST, // Kept as per original
+              quality: 100,
+              size: 1000,
+              artworkQuality: FilterQuality.high,
+              nullArtworkWidget: Container(
+                color: isDarkMode ? Colors.grey[800] : Colors.grey[300],
+                child: const Icon(
+                  Iconsax.music_playlist,
+                  size: 100,
+                  color: Colors.grey,
+                ),
+              ),
             ),
-          ),
+            // Gradient Overlay
+            Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.transparent,
+                    Theme.of(context)
+                        .scaffoldBackgroundColor
+                        .withValues(alpha: 0.5),
+                    Theme.of(context).scaffoldBackgroundColor,
+                  ],
+                  stops: const [0.0, 0.7, 1.0],
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -264,6 +320,10 @@ class _PlaylistDetailsViewState extends State<PlaylistDetailsView>
       return SliverList(
         delegate: SliverChildBuilderDelegate(
           (context, index) {
+            if (kDebugMode) {
+              print('Building song card for index $index');
+              print('Playlist songs: ${playlistSongs.length}');
+            }
             final song = playlistSongs[index];
             return PlaylistSongCard(
               key: ValueKey(song.id),
@@ -273,10 +333,12 @@ class _PlaylistDetailsViewState extends State<PlaylistDetailsView>
                 _playerController.currentPlaylist.value = playlistSongs;
                 _playerController.playSong(song);
               },
-              onRemove: () => _playlistController.removeFromPlaylist(
-                widget.playlist.id,
-                song.id,
-              ),
+              onRemove: () {
+                _playlistController.removeFromPlaylist(
+                  widget.playlist.id,
+                  song.id,
+                );
+              },
             );
           },
           childCount: playlistSongs.length,
@@ -286,21 +348,15 @@ class _PlaylistDetailsViewState extends State<PlaylistDetailsView>
   }
 
   void _showAddToPlaylistDialog() {
-    showDialog(
+    showModalBottomSheet(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Add Songs'),
-        content: AddToPlaylistDialogContent(
-          playerController: _playerController,
-          playlistController: _playlistController,
-          playlistId: widget.playlist.id,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Done'),
-          ),
-        ],
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => AddToPlaylistDialogContent(
+        playerController: _playerController,
+        playlistController: _playlistController,
+        playlistId: widget.playlist.id,
       ),
     );
   }
@@ -403,18 +459,38 @@ class _AddToPlaylistDialogContentState extends State<AddToPlaylistDialogContent>
 
     return Container(
       width: double.maxFinite,
-      height: MediaQuery.of(context).size.height * 0.7,
+      height: MediaQuery.of(context).size.height * 0.9,
       decoration: BoxDecoration(
-        color: isDarkMode
-            ? Colors.grey[900]!.withValues(alpha: 0.9)
-            : Colors.white.withValues(alpha: 0.9),
-        borderRadius: BorderRadius.circular(24),
+        color: isDarkMode ? Colors.grey[900] : Colors.white,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: Column(
         children: [
-          // Modern Search Bar
+          // Header
           Padding(
             padding: const EdgeInsets.all(16.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Add Songs',
+                  style: AppTheme.headlineMedium.copyWith(
+                    color: isDarkMode ? Colors.white : Colors.black,
+                  ),
+                ),
+                IconButton(
+                  onPressed: () => Navigator.pop(context),
+                  icon: Icon(
+                    Icons.close,
+                    color: isDarkMode ? Colors.white : Colors.black,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // Modern Search Bar
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
             child: Container(
               decoration: BoxDecoration(
                 color: isDarkMode
@@ -463,6 +539,7 @@ class _AddToPlaylistDialogContentState extends State<AddToPlaylistDialogContent>
               ),
             ),
           ),
+          const SizedBox(height: 16),
 
           // Song List or Empty State
           Expanded(

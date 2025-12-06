@@ -35,7 +35,7 @@ class _AppLayoutState extends State<AppLayout> {
 
     return PopScope(
       canPop: false,
-      onPopInvoked: (didPop) {
+      onPopInvokedWithResult: (didPop, result) {
         if (didPop) return;
 
         // Check if panel is NOT closed (open or opening)

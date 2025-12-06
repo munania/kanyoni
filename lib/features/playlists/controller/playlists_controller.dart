@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
-import 'package:on_audio_query_forked/on_audio_query.dart';
+import 'package:on_audio_query_pluse/on_audio_query.dart';
 
 import '../../../controllers/base_controller.dart';
 import '../../../controllers/player_controller.dart';
@@ -9,6 +9,8 @@ class PlaylistController extends BaseController {
   final RxList<PlaylistModel> playlists = <PlaylistModel>[].obs;
   final RxMap<int, List<SongModel>> _playlistSongsCache =
       <int, List<SongModel>>{}.obs;
+  final RxMap<int, Map<int, int>> _playlistMemberIdMap =
+      <int, Map<int, int>>{}.obs; // PlaylistID -> { AudioID -> MemberID }
   final PlayerController _playerController = Get.put(PlayerController());
   static const String _appPlaylistIdentifier = '[kanyoni]';
   bool _isInitialized = false;
@@ -53,16 +55,26 @@ class PlaylistController extends BaseController {
         orderType: OrderType.ASC_OR_SMALLER,
       );
 
+      // Initialize member ID map for this playlist
+      _playlistMemberIdMap[playlistId] = {};
+
       // Map playlist songs to system songs to ensure we have full metadata and correct IDs
       final mappedSongs = songs.map((playlistSong) {
-        // Try to find the song in the system songs list
+        // playlistSong.id is the MEMBER ID (playlist entry ID)
+        final memberId = playlistSong.id;
+
+        // Try to find the song in the system songs list by matching metadata
         final systemSong = _playerController.songs.firstWhere(
-          (s) => s.id == playlistSong.id,
-          orElse: () => _playerController.songs.firstWhere(
-            (s) => _areSongsMatching(s, playlistSong),
-            orElse: () => playlistSong,
-          ),
+          (s) => _areSongsMatching(s, playlistSong),
+          orElse: () => playlistSong,
         );
+
+        // Store mapping: AudioID -> MemberID
+        _playlistMemberIdMap[playlistId]![systemSong.id] = memberId;
+        if (kDebugMode) {
+          print('Mapped: AudioID ${systemSong.id} -> MemberID $memberId');
+        }
+
         return systemSong;
       }).toList();
 
@@ -106,6 +118,7 @@ class PlaylistController extends BaseController {
     try {
       // Optimistic update
       playlists.removeWhere((p) => p.id == playlistId);
+      _playlistMemberIdMap.remove(playlistId);
 
       final result = await audioQuery.removePlaylist(playlistId);
       if (result) {
@@ -129,6 +142,7 @@ class PlaylistController extends BaseController {
       final playlistsToDelete = List<PlaylistModel>.from(playlists);
       playlists.clear();
       _playlistSongsCache.clear();
+      _playlistMemberIdMap.clear();
 
       for (var playlist in playlistsToDelete) {
         await audioQuery.removePlaylist(playlist.id);
@@ -147,17 +161,23 @@ class PlaylistController extends BaseController {
 
   Future<void> renamePlaylist(int playlistId, String newName) async {
     try {
+      if (kDebugMode) print('Renaming playlist $playlistId to $newName');
+
       final cleanName = newName.replaceAll(_appPlaylistIdentifier, '').trim();
-      final result = await audioQuery.renamePlaylist(
-          playlistId, "$cleanName $_appPlaylistIdentifier");
+      final finalName = "$cleanName $_appPlaylistIdentifier";
+
+      if (kDebugMode) print('Final name: $finalName');
+
+      final result = await audioQuery.renamePlaylist(playlistId, finalName);
 
       if (result) {
-        final index = playlists.indexWhere((p) => p.id == playlistId);
-        if (index != -1) {
-          playlists[index] = _createSanitizedPlaylist(playlists[index]);
-          playlists.refresh();
-        }
+        if (kDebugMode) print('Rename successful');
+        // Refresh all playlists to ensure sync
+        await fetchPlaylists(force: true);
         _showSuccess('Playlist renamed successfully');
+      } else {
+        if (kDebugMode) print('Rename failed');
+        _handleError('Renaming playlist', 'Operation failed');
       }
     } catch (e) {
       _handleError('Renaming playlist', e);
@@ -194,10 +214,8 @@ class PlaylistController extends BaseController {
       final result = await audioQuery.addToPlaylist(playlistId, systemSongId);
 
       if (_isOperationSuccessful(result)) {
-        // Add to local cache
-        final updatedSongs = List<SongModel>.from(existingSongModels)
-          ..add(systemSong);
-        _playlistSongsCache[playlistId] = updatedSongs;
+        // Reload playlist to get the new member ID for the added song
+        await _loadPlaylistSongs(playlistId);
         _playlistSongsCache.refresh();
         _showSuccess('Added to playlist');
         return true;
@@ -213,56 +231,37 @@ class PlaylistController extends BaseController {
 
   Future<void> removeFromPlaylist(int playlistId, int songId) async {
     try {
-      // 1. Fetch current songs in the playlist to get their actual IDs in the database
-      // We need this because the ID in the playlist might differ from the System ID (e.g. after re-scan)
-      final playlistSongs = await audioQuery.queryAudiosFrom(
-        AudiosFromType.PLAYLIST,
-        playlistId,
-      );
+      if (kDebugMode) print('Removing song $songId from playlist $playlistId');
 
-      print('playlistSongs: $playlistSongs');
-
-      // 2. Find the ID to remove.
-      // The songId passed is likely the System ID (from our cache).
-      // We want to find a song in playlistSongs that matches this System Song.
-
-      // Get the full system song object for metadata comparison
-      final systemSong = _playerController.songs.firstWhereOrNull(
-        (s) => s.id == songId,
-      );
-
-      print('systemSong: $systemSong');
-
-      int idToRemove = songId; // Default to the passed ID
-
-      print('idToRemove: $idToRemove');
-
-      if (systemSong != null) {
-        // Try to find a matching song in the playlist
-        final match = playlistSongs.firstWhereOrNull((ps) {
-          // Check ID match
-          if (ps.id == songId) return true;
-          // Check metadata match (robustness for re-scanned files)
-          return _areSongsMatching(ps, systemSong);
-        });
-
-        if (match != null) {
-          idToRemove = match.id;
-        }
+      // Look up the Member ID using the Audio ID (songId)
+      int? memberId;
+      if (_playlistMemberIdMap.containsKey(playlistId)) {
+        memberId = _playlistMemberIdMap[playlistId]?[songId];
       }
 
-      // 3. Perform removal
-      final result =
-          await audioQuery.removeFromPlaylist(playlistId, idToRemove);
+      if (memberId == null) {
+        if (kDebugMode) print('Member ID not found for audio ID $songId');
+        _handleError('Removing song', 'Song not found in playlist');
+        return;
+      }
+
+      if (kDebugMode) print('Using Member ID: $memberId for removal');
+
+      // Perform removal using Member ID
+      final result = await audioQuery.removeFromPlaylist(playlistId, memberId);
 
       if (_isOperationSuccessful(result)) {
-        // 4. Update local cache
+        if (kDebugMode) print('Removal successful');
+        // Update local cache
         final currentSongs = _playlistSongsCache[playlistId];
         if (currentSongs != null) {
-          // Remove by the System ID (songId) because that's what is in our cache
           final updatedSongs =
               currentSongs.where((s) => s.id != songId).toList();
           _playlistSongsCache[playlistId] = updatedSongs;
+
+          // Remove from member ID map
+          _playlistMemberIdMap[playlistId]?.remove(songId);
+
           _playlistSongsCache.refresh();
         }
         _showSuccess('Song removed from playlist');
@@ -270,6 +269,7 @@ class PlaylistController extends BaseController {
         if (kDebugMode) print('Failed to remove song from playlist');
         // Force reload to ensure UI is in sync with reality
         await _loadPlaylistSongs(playlistId);
+        _handleError('Removing song', 'Failed to remove from playlist');
       }
     } catch (e) {
       _handleError('Removing song from playlist', e);

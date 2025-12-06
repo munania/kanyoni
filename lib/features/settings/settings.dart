@@ -11,7 +11,7 @@ import 'package:kanyoni/features/settings/policies_settings.dart';
 import 'package:kanyoni/features/settings/support_settings.dart';
 import 'package:kanyoni/features/settings/theme_settings.dart';
 import 'package:kanyoni/utils/theme/theme.dart';
-import 'package:on_audio_query_forked/on_audio_query.dart';
+import 'package:on_audio_query_pluse/on_audio_query.dart';
 
 class SettingsView extends StatefulWidget {
   const SettingsView({super.key});

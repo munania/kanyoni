@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:kanyoni/controllers/player_controller.dart';
-import 'package:on_audio_query_forked/on_audio_query.dart';
+import 'package:on_audio_query_pluse/on_audio_query.dart';
 
 import '../../utils/theme/theme.dart';
 import '../now_playing/now_playing_widgets.dart';
@@ -379,16 +379,20 @@ class _ArtworkWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return QueryArtworkWidget(
-      id: song.id,
-      type: ArtworkType.AUDIO,
-      keepOldArtwork: true,
-      size: 50,
-      quality: 100,
-      artworkQuality: FilterQuality.high,
-      nullArtworkWidget: const ThemedArtworkPlaceholder(
-        iconSize: 24,
-        icon: Iconsax.music,
+    return SizedBox(
+      width: 50,
+      height: 50,
+      child: QueryArtworkWidget(
+        id: song.id,
+        type: ArtworkType.AUDIO,
+        keepOldArtwork: true,
+        size: 50,
+        quality: 100,
+        artworkQuality: FilterQuality.high,
+        nullArtworkWidget: const ThemedArtworkPlaceholder(
+          iconSize: 24,
+          icon: Iconsax.music,
+        ),
       ),
     );
   }

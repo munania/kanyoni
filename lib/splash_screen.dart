@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:kanyoni/app_layout.dart';
 import 'package:kanyoni/homepage.dart';
-import 'package:kanyoni/main.dart';
+
 import 'package:kanyoni/utils/background_initializer.dart';
+import 'package:on_audio_query_pluse/on_audio_query.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 import 'controllers/player_controller.dart';
@@ -40,7 +41,7 @@ class _SplashScreenPageState extends State<SplashScreenPage> {
     try {
       // Step 1: Request Permissions (20%)
       _updateProgress('Requesting permissions...', 0.2);
-      final hasPermissions = await requestPermissions();
+      final hasPermissions = await OnAudioQuery().permissionsRequest();
 
       if (!hasPermissions) {
         setState(() {

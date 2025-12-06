@@ -7,7 +7,7 @@ import 'package:kanyoni/controllers/player_controller.dart';
 import 'package:kanyoni/features/now_playing/now_playing_panel.dart';
 import 'package:kanyoni/features/now_playing/now_playing_widgets.dart';
 import 'package:kanyoni/utils/theme/theme.dart';
-import 'package:on_audio_query_forked/on_audio_query.dart';
+import 'package:on_audio_query_pluse/on_audio_query.dart';
 import 'package:sliding_up_panel/sliding_up_panel.dart';
 
 class SearchView extends StatefulWidget {

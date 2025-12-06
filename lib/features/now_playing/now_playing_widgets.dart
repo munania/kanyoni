@@ -8,7 +8,7 @@ import 'package:kanyoni/features/playlists/controller/playlists_controller.dart'
 import 'package:kanyoni/utils/helpers/helper_functions.dart';
 import 'package:kanyoni/utils/theme/theme.dart';
 import 'package:marquee/marquee.dart';
-import 'package:on_audio_query_forked/on_audio_query.dart';
+import 'package:on_audio_query_pluse/on_audio_query.dart';
 
 import 'package:flutter_audio_waveforms/flutter_audio_waveforms.dart';
 import 'package:kanyoni/controllers/theme_controller.dart';
