@@ -7,7 +7,7 @@ import 'package:kanyoni/controllers/base_controller.dart';
 import 'package:kanyoni/controllers/player_controller.dart';
 import 'package:kanyoni/features/now_playing/now_playing_widgets.dart';
 import 'package:kanyoni/features/settings/behavior_settings.dart';
-import 'package:kanyoni/features/settings/policies_settings.dart';
+// import 'package:kanyoni/features/settings/policies_settings.dart';
 import 'package:kanyoni/features/settings/support_settings.dart';
 import 'package:kanyoni/features/settings/theme_settings.dart';
 import 'package:kanyoni/utils/theme/theme.dart';
@@ -120,15 +120,15 @@ class _SettingsViewState extends State<SettingsView> {
                       },
                     ),
                     const SizedBox(height: 12),
-                    _ModernSettingsCard(
-                      icon: Iconsax.shield_tick,
-                      title: 'Policies',
-                      subtitle: 'Privacy policy and terms',
-                      isDarkMode: isDarkMode,
-                      onTap: () {
-                        Get.to(() => const PoliciesSettingsScreen());
-                      },
-                    ),
+                    // _ModernSettingsCard(
+                    //   icon: Iconsax.shield_tick,
+                    //   title: 'Policies',
+                    //   subtitle: 'Privacy policy and terms',
+                    //   isDarkMode: isDarkMode,
+                    //   onTap: () {
+                    //     Get.to(() => const PoliciesSettingsScreen());
+                    //   },
+                    // ),
                     const SizedBox(height: 12),
                     _ModernSettingsCard(
                       icon: Iconsax.support,

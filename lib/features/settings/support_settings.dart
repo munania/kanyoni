@@ -164,7 +164,7 @@ class SupportSettingsScreen extends StatelessWidget {
     // For iOS, use App Store URL
     // You'll need to replace these with your actual app IDs
     const androidPackageName =
-        'com.example.kanyoni'; // Replace with actual package name
+        'com.inktonedesign.kanyoni'; // Replace with actual package name
     const iosAppId = 'YOUR_IOS_APP_ID'; // Replace with actual iOS app ID
 
     final Uri playStoreUri = Uri.parse(
@@ -201,11 +201,21 @@ class SupportSettingsScreen extends StatelessWidget {
     }
   }
 
+  String? _encodeQueryParameters(Map<String, String> params) {
+    return params.entries
+        .map((MapEntry<String, String> e) =>
+            '${Uri.encodeComponent(e.key)}=${Uri.encodeComponent(e.value)}')
+        .join('&');
+  }
+
   Future<void> _sendFeedback(BuildContext context) async {
     final Uri emailUri = Uri(
       scheme: 'mailto',
-      path: 'support@kanyoni.app', // Replace with your support email
-      query: 'subject=Kanyoni Feedback&body=Hi Kanyoni Team,%0A%0A',
+      path: 'inktone.design@gmail.com',
+      query: _encodeQueryParameters(<String, String>{
+        'subject': 'Kanyoni Feedback',
+        'body': 'Hi Kanyoni Team,\n\n',
+      }),
     );
 
     try {
