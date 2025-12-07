@@ -50,9 +50,6 @@ Kanyoni is a modern, feature-rich offline music player built with Flutter. It co
 
 ## 📝 To-Do
 
-- [ ] Add background music playing support.
-- [ ] Fix playlist renaming issues.
-
 ## 🤝 Contributing
 
 Contributions are welcome! If you have any ideas, suggestions, or bug reports, please open an issue or submit a pull request.
