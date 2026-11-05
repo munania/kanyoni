@@ -6,7 +6,7 @@ Kanyoni is a modern, feature-rich offline music player built with Flutter. It co
 
 - **Offline Playback**: Scan and play your local music library with ease.
 - **Modern UI**: Beautiful glassmorphism design with dynamic theming support.
-- **Lyrics Support**: Sing along with synchronized or static lyrics.
+- **Lyrics Support**: Synchronized or static lyrics, matched to your exact file (by title, artist and length), cached offline, with per-song sync adjustment and tap-to-seek.
 - **Playlists**: Create, manage, and customize your own playlists.
 - **Equalizer**: Fine-tune your audio with a built-in equalizer.
 - **Visualizer**: Dynamic audio waveforms for a visual music experience.
@@ -18,7 +18,7 @@ Kanyoni is a modern, feature-rich offline music player built with Flutter. It co
 - **Framework**: [Flutter](https://flutter.dev/)
 - **State Management**: [GetX](https://pub.dev/packages/get)
 - **Audio Engine**: [just_audio](https://pub.dev/packages/just_audio)
-- **Local Database**: [Hive](https://pub.dev/packages/hive)
+- **Local Database**: [Hive](https://pub.dev/packages/hive) (lyrics cache; opened lazily so it doesn't affect start-up)
 - **UI Components**: Custom glassmorphic widgets, [sliding_up_panel](https://pub.dev/packages/sliding_up_panel)
 
 ## 🚀 Installation
@@ -48,7 +48,22 @@ Kanyoni is a modern, feature-rich offline music player built with Flutter. It co
    flutter run
    ```
 
+## 📱 Platform support
+
+Kanyoni currently targets **Android**. Music scanning (MediaStore) and the equalizer rely on Android-only plugins; the other platform folders are Flutter scaffolding and are not supported yet.
+
+## 🧪 Tests
+
+```bash
+flutter test
+```
+
+Unit tests cover the LRC parser, the lyrics matching logic and the folder filters.
+
 ## 📝 To-Do
+
+- [ ] Gapless playback (needs a playlist-based audio source)
+- [ ] Add screenshots to this README
 
 ## 🤝 Contributing
 

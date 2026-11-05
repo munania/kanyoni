@@ -188,7 +188,9 @@ class _PlaylistDetailsViewState extends State<PlaylistDetailsView>
         centerTitle: true,
         titlePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         title: Text(
-          widget.playlist.playlist.replaceAll(' [kanyoni]', ''),
+          (_playlistController.playlistName(widget.playlist.id) ??
+                  widget.playlist.playlist)
+              .replaceAll(' [kanyoni]', ''),
           overflow: TextOverflow.ellipsis,
           maxLines: 1,
           style: AppTheme.headlineMedium.copyWith(
@@ -330,8 +332,10 @@ class _PlaylistDetailsViewState extends State<PlaylistDetailsView>
               song: song,
               isDarkMode: isDarkMode,
               onPlay: () {
-                _playerController.currentPlaylist.value = playlistSongs;
-                _playerController.playSong(song);
+                _playerController.playQueue(
+                  playlistSongs,
+                  index: playlistSongs.indexWhere((s) => s.id == song.id),
+                );
               },
               onRemove: () {
                 _playlistController.removeFromPlaylist(
@@ -597,17 +601,17 @@ class _AddToPlaylistDialogContentState extends State<AddToPlaylistDialogContent>
     return Obx(() {
       final playlistSongs =
           widget.playlistController.getPlaylistSongs(widget.playlistId);
+      // Same rule as the controller (song id). This used to compare
+      // title/artist/duration/path here but id/metadata there, so a copy of a
+      // song looked "not in the playlist" yet could not be added.
+      final inPlaylistIds = {for (final s in playlistSongs) s.id};
 
       return ListView.builder(
         padding: const EdgeInsets.symmetric(horizontal: 16),
         itemCount: _filteredSongs.length,
         itemBuilder: (context, index) {
           final song = _filteredSongs[index];
-          final isInPlaylist = playlistSongs.any((s) =>
-              s.title == song.title &&
-              s.artist == song.artist &&
-              s.duration == song.duration &&
-              s.data == song.data);
+          final isInPlaylist = inPlaylistIds.contains(song.id);
 
           return FadeTransition(
             opacity: _animationController,

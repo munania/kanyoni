@@ -133,6 +133,16 @@ class PrivacyPolicyView extends StatelessWidget {
 
                   _buildSection(
                     isDarkMode: isDarkMode,
+                    title: 'Lyrics Lookup',
+                    content:
+                        'When you open the lyrics screen, the song title, artist, album and duration are sent to the free lrclib.net service to find matching lyrics. '
+                        'No other personal data is sent. Lyrics that were found, lyrics you add yourself and your sync adjustments are stored only on your device.',
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  _buildSection(
+                    isDarkMode: isDarkMode,
                     title: 'Third-Party Services',
                     content:
                         'This app does not integrate with any third-party analytics, advertising, or tracking services. '

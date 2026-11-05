@@ -21,14 +21,14 @@ class LyricsModel {
 
   factory LyricsModel.fromJson(Map<String, dynamic> json) {
     return LyricsModel(
-      id: json['id'] ?? 0,
-      trackName: json['trackName'] ?? '',
-      artistName: json['artistName'] ?? '',
-      albumName: json['albumName'] ?? '',
-      duration: (json['duration'] ?? 0).toDouble(),
-      instrumental: json['instrumental'] ?? false,
-      plainLyrics: json['plainLyrics'] ?? '',
-      syncedLyrics: json['syncedLyrics'] ?? '',
+      id: (json['id'] as num?)?.toInt() ?? 0,
+      trackName: json['trackName'] as String? ?? '',
+      artistName: json['artistName'] as String? ?? '',
+      albumName: json['albumName'] as String? ?? '',
+      duration: (json['duration'] as num?)?.toDouble() ?? 0,
+      instrumental: json['instrumental'] as bool? ?? false,
+      plainLyrics: json['plainLyrics'] as String? ?? '',
+      syncedLyrics: json['syncedLyrics'] as String? ?? '',
     );
   }
 
@@ -44,11 +44,14 @@ class LyricsModel {
       'syncedLyrics': syncedLyrics,
     };
   }
+
+  bool get hasSynced => syncedLyrics.trim().isNotEmpty;
+  bool get hasAnyText => hasSynced || plainLyrics.trim().isNotEmpty;
 }
 
 class LyricLine {
   final Duration time;
   final String text;
 
-  LyricLine({required this.time, required this.text});
+  const LyricLine({required this.time, required this.text});
 }

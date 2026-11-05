@@ -378,9 +378,10 @@ class _SongListItem extends StatelessWidget {
             child: InkWell(
               borderRadius: BorderRadius.circular(12),
               onTap: () {
-                playerController.currentPlaylist.value =
-                    folderController.getFolderSongs(folderPath);
-                playerController.playSong(index);
+                playerController.playQueue(
+                  folderController.getFolderSongs(folderPath),
+                  index: index,
+                );
               },
               child: Padding(
                 padding: const EdgeInsets.all(12),
@@ -490,8 +491,7 @@ class _PlayAllButton extends StatelessWidget {
       onPressed: folderSongs.isEmpty
           ? null
           : () {
-              playerController.currentPlaylist.value = folderSongs;
-              playerController.playSong(0);
+              playerController.playQueue(folderSongs);
             },
       icon: Icon(
         Icons.play_arrow,

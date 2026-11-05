@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:audio_service/audio_service.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
@@ -6,47 +8,55 @@ import 'package:on_audio_query_pluse/on_audio_query.dart';
 
 import 'player_controller.dart';
 
+/// Bridges [PlayerController] to the system media session / notification.
 class MediaPlayerHandler extends BaseAudioHandler {
   final PlayerController _playerController = Get.find<PlayerController>();
-  List<SongModel> _lastKnownPlaylist = [];
+  List<int> _lastQueueIds = [];
 
   MediaPlayerHandler() {
     _initializeHandler();
   }
 
   void _initializeHandler() {
-    // Initial setup
     _updateQueue();
     _updateMediaItem(_playerController.currentSongIndex.value);
 
-    // Listen to playlist changes
+    // Queue changes (compare by id: cheap, and avoids rebuilding the whole
+    // MediaItem list when only an equal list was re-assigned).
     _playerController.currentPlaylist.listen((playlist) {
-      if (!listEquals(playlist, _lastKnownPlaylist)) {
-        _lastKnownPlaylist = List.from(playlist);
+      final ids = playlist.map((s) => s.id).toList();
+      if (!listEquals(ids, _lastQueueIds)) {
         _updateQueue();
       }
+      // The queue can change under the same index (e.g. a new album starts
+      // at index 0), so refresh the displayed item as well.
+      _updateMediaItem(_playerController.currentSongIndex.value);
     });
 
-    // Listen to current song changes
     _playerController.currentSongIndex.listen((index) {
       _updateMediaItem(index);
-    });
-
-    // Listen to playback state changes
-    _playerController.audioPlayer.playerStateStream.listen((playerState) {
       _updatePlaybackState();
     });
 
-    // Listen to position changes
-    _playerController.audioPlayer.positionStream.listen((_) {
-      _updatePlaybackState();
-    });
+    // Push playback state only when something meaningful changes. The system
+    // extrapolates the position from `updatePosition` + `speed`, so there is
+    // no need to publish a new state on every position tick (~5 times/sec).
+    final player = _playerController.audioPlayer;
+    player.playerStateStream.listen((_) => _updatePlaybackState());
+    player.playbackEventStream.listen(
+      (_) => _updatePlaybackState(),
+      onError: (Object e, StackTrace st) {
+        if (kDebugMode) {
+          print('Playback event error: $e');
+        }
+      },
+    );
   }
 
   void _updateQueue() {
-    queue.add(_playerController.currentPlaylist
-        .map((song) => _createMediaItem(song))
-        .toList());
+    final playlist = _playerController.currentPlaylist;
+    _lastQueueIds = playlist.map((s) => s.id).toList();
+    queue.add(playlist.map(_createMediaItem).toList());
   }
 
   MediaItem _createMediaItem(SongModel song) {
@@ -56,50 +66,50 @@ class MediaPlayerHandler extends BaseAudioHandler {
       artist: song.artist ?? 'Unknown Artist',
       album: song.album,
       duration: Duration(milliseconds: song.duration ?? 0),
-      artUri:
-          Uri.parse('content://media/external/audio/media/${song.id}/albumart'),
-      extras: <String, dynamic>{
-        'uri': song.uri,
-        'data': song.data,
-      },
+      artUri: Uri.parse(
+        'content://media/external/audio/media/${song.id}/albumart',
+      ),
+      extras: <String, dynamic>{'uri': song.uri, 'data': song.data},
     );
   }
 
   void _updateMediaItem(int index) {
-    if (index >= 0 && index < _playerController.currentPlaylist.length) {
-      final song = _playerController.currentPlaylist[index];
-      mediaItem.add(_createMediaItem(song));
+    final playlist = _playerController.currentPlaylist;
+    if (index >= 0 && index < playlist.length) {
+      mediaItem.add(_createMediaItem(playlist[index]));
     }
   }
 
   void _updatePlaybackState() {
     try {
-      final position = _playerController.audioPlayer.position;
-      final state = _playerController.audioPlayer.playerState;
+      final player = _playerController.audioPlayer;
+      final state = player.playerState;
 
-      playbackState.add(PlaybackState(
-        controls: [
-          MediaControl.skipToPrevious,
-          state.playing ? MediaControl.pause : MediaControl.play,
-          MediaControl.skipToNext,
-          MediaControl.stop,
-        ],
-        systemActions: const {
-          MediaAction.seek,
-          MediaAction.skipToNext,
-          MediaAction.skipToPrevious,
-          MediaAction.play,
-          MediaAction.pause,
-          MediaAction.stop,
-        },
-        androidCompactActionIndices: const [0, 1, 2],
-        processingState: _getProcessingState(state.processingState),
-        playing: state.playing,
-        updatePosition: position,
-        bufferedPosition: position,
-        speed: _playerController.audioPlayer.speed,
-        queueIndex: _playerController.currentSongIndex.value,
-      ));
+      playbackState.add(
+        PlaybackState(
+          controls: [
+            MediaControl.skipToPrevious,
+            state.playing ? MediaControl.pause : MediaControl.play,
+            MediaControl.skipToNext,
+            MediaControl.stop,
+          ],
+          systemActions: const {
+            MediaAction.seek,
+            MediaAction.skipToNext,
+            MediaAction.skipToPrevious,
+            MediaAction.play,
+            MediaAction.pause,
+            MediaAction.stop,
+          },
+          androidCompactActionIndices: const [0, 1, 2],
+          processingState: _getProcessingState(state.processingState),
+          playing: state.playing,
+          updatePosition: player.position,
+          bufferedPosition: player.bufferedPosition,
+          speed: player.speed,
+          queueIndex: _playerController.currentSongIndex.value,
+        ),
+      );
     } catch (e) {
       if (kDebugMode) {
         print("Error updating playback state: $e");
@@ -125,8 +135,11 @@ class MediaPlayerHandler extends BaseAudioHandler {
   @override
   Future<void> play() async {
     try {
-      await _playerController.audioPlayer.play();
-      _updatePlaybackState();
+      // Same path as the in-app button, so it also handles "nothing loaded"
+      // and "finished the queue" correctly.
+      if (!_playerController.audioPlayer.playing) {
+        _playerController.togglePlayPause();
+      }
     } catch (e) {
       if (kDebugMode) {
         print("Error playing: $e");
@@ -138,7 +151,6 @@ class MediaPlayerHandler extends BaseAudioHandler {
   Future<void> pause() async {
     try {
       await _playerController.audioPlayer.pause();
-      _updatePlaybackState();
     } catch (e) {
       if (kDebugMode) {
         print("Error pausing: $e");
@@ -157,7 +169,6 @@ class MediaPlayerHandler extends BaseAudioHandler {
     try {
       if (_playerController.currentPlaylist.isNotEmpty) {
         await _playerController.playNext();
-        _updatePlaybackState();
       }
     } catch (e) {
       if (kDebugMode) {
@@ -171,7 +182,6 @@ class MediaPlayerHandler extends BaseAudioHandler {
     try {
       if (_playerController.currentPlaylist.isNotEmpty) {
         await _playerController.playPrevious();
-        _updatePlaybackState();
       }
     } catch (e) {
       if (kDebugMode) {

@@ -23,10 +23,22 @@ class _AppLayoutState extends State<AppLayout> {
   late final PanelController
       panelController; // Use late final for single initialization
 
+  /// 0.0 = panel closed (mini player showing), 1.0 = fully open.
+  final ValueNotifier<double> _panelPosition = ValueNotifier<double>(0);
+
+  /// Above this the mini player is visually gone, so it must stop taking taps.
+  static const double _collapsedTapCutoff = 0.05;
+
   @override
   void initState() {
     super.initState();
     panelController = PanelController(); // Initialize once in state
+  }
+
+  @override
+  void dispose() {
+    _panelPosition.dispose();
+    super.dispose();
   }
 
   @override
@@ -57,12 +69,24 @@ class _AppLayoutState extends State<AppLayout> {
           borderRadius: const BorderRadius.vertical(
             top: Radius.circular(AppTheme.cornerRadius),
           ),
+          onPanelSlide: (position) => _panelPosition.value = position,
           panel: NowPlayingPanel(
             playerController: playerController,
           ),
-          collapsed: CollapsedPanel(
-            playerController: playerController,
-            panelController: panelController,
+          // The mini player fades out as the panel opens, but it still sits
+          // (invisibly) over the top 70px of the open panel. Without this it
+          // swallowed taps meant for the controls there, e.g. the lyrics
+          // edit/sync buttons triggered play/pause and skip instead.
+          collapsed: ValueListenableBuilder<double>(
+            valueListenable: _panelPosition,
+            builder: (context, position, child) => IgnorePointer(
+              ignoring: position > _collapsedTapCutoff,
+              child: child,
+            ),
+            child: CollapsedPanel(
+              playerController: playerController,
+              panelController: panelController,
+            ),
           ),
           body: widget.child,
         ),

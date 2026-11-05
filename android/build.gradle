@@ -2,6 +2,8 @@ allprojects {
     repositories {
         google()
         mavenCentral()
+        // Android build of jaudiotagger (tag editing) is published on JitPack.
+        maven { url = uri("https://jitpack.io") }
     }
 }
 

@@ -8,6 +8,7 @@ import 'package:on_audio_query_pluse/on_audio_query.dart';
 
 import '../../utils/theme/theme.dart';
 import '../now_playing/now_playing_widgets.dart';
+import '../song_options/song_options_sheet.dart';
 
 class TracksView extends StatelessWidget {
   const TracksView({super.key});
@@ -313,9 +314,10 @@ class _TrackListItem extends StatelessWidget {
           child: InkWell(
             borderRadius: BorderRadius.circular(12),
             onTap: () {
-              playerController.currentPlaylist.value = playerController.songs;
-              playerController.playSong(index);
+              playerController.playQueue(playerController.songs.toList(),
+                  index: index);
             },
+            onLongPress: () => showSongOptions(context, song),
             child: Padding(
               padding: const EdgeInsets.all(12.0),
               child: Row(

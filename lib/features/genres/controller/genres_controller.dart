@@ -51,8 +51,7 @@ class GenreController extends BaseController {
     await ensureSongsForGenreLoaded(genreId); // Ensure songs are loaded
     final songs = getGenreSongs(genreId);
     if (songs.isNotEmpty) {
-      playerController.currentPlaylist.value = songs;
-      await playerController.playSong(0);
+      await playerController.playQueue(songs);
     }
   }
 

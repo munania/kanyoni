@@ -6,6 +6,8 @@ import 'package:kanyoni/features/albums/controller/album_controller.dart';
 import 'package:kanyoni/features/artists/controller/artists_controller.dart';
 import 'package:kanyoni/features/folders/controllers/folder_controller.dart';
 import 'package:kanyoni/features/genres/controller/genres_controller.dart';
+import 'package:kanyoni/features/equalizer/equalizer_controller.dart';
+import 'package:kanyoni/features/lyrics/lyrics_controller.dart';
 import 'package:kanyoni/features/playlists/controller/playlists_controller.dart';
 
 /// Lazy binding for all app controllers
@@ -24,5 +26,7 @@ class LazyControllerBinding extends Bindings {
     Get.lazyPut<ArtistController>(() => ArtistController(), fenix: true);
     Get.lazyPut<GenreController>(() => GenreController(), fenix: true);
     Get.lazyPut<FolderController>(() => FolderController(), fenix: true);
+    Get.lazyPut<LyricsController>(() => LyricsController(), fenix: true);
+    Get.lazyPut<EqualizerController>(() => EqualizerController(), fenix: true);
   }
 }

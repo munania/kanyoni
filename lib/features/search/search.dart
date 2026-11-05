@@ -28,12 +28,6 @@ class _SearchViewState extends State<SearchView> {
     super.initState();
   }
 
-  @override
-  void dispose() {
-    playerController.currentPlaylist.value = playerController.songs;
-    super.dispose();
-  }
-
   void _filterSongs(String query) {
     if (query.isEmpty) {
       _filteredSongs.value = playerController.songs;
@@ -47,15 +41,12 @@ class _SearchViewState extends State<SearchView> {
   }
 
   void _playFromSearch(SongModel song) {
-    //update the current playlist to the filtered songs
-    playerController.currentPlaylist.value = _filteredSongs;
-
-    //Find the index of the song in the filtered list
+    // Find the index of the song in the filtered list
     final index = _filteredSongs.indexWhere((s) => s.id == song.id);
 
-    // Play the selected song
+    // Queue the filtered songs and play the selected one
     if (index != -1) {
-      playerController.playSong(index);
+      playerController.playQueue(_filteredSongs.toList(), index: index);
     }
   }
 

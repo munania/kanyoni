@@ -1,6 +1,6 @@
 import 'dart:math';
 
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide RepeatMode;
 import 'package:get/get.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:kanyoni/controllers/player_controller.dart';
@@ -13,6 +13,7 @@ import 'package:on_audio_query_pluse/on_audio_query.dart';
 import 'package:flutter_audio_waveforms/flutter_audio_waveforms.dart';
 import 'package:kanyoni/controllers/theme_controller.dart';
 import 'package:kanyoni/features/equalizer/equalizer_screen.dart';
+import 'package:kanyoni/features/queue/queue_page.dart';
 
 class DragHandle extends StatelessWidget {
   const DragHandle({super.key});
@@ -751,9 +752,6 @@ class ExtraControls extends StatelessWidget {
                                                           Get.snackbar('Error',
                                                               'Failed to add "${currentSong.title}" to "${newPlaylist.playlist}"');
                                                         }
-                                                      } else {
-                                                        Get.snackbar('Error',
-                                                            'Playlist "$playlistName" created, but could not find it to add song. Please try adding manually.');
                                                       }
                                                     },
                                                     style:
@@ -847,6 +845,21 @@ class ExtraControls extends StatelessWidget {
             ),
           );
         }),
+        ScaleButton(
+          onTap: () {
+            Get.to(
+              () => const QueuePage(),
+              transition: Transition.downToUp,
+              duration: const Duration(milliseconds: 250),
+              curve: Curves.easeOut,
+            );
+          },
+          child: Icon(
+            Icons.queue_music_rounded,
+            size: iconSize,
+            color: Theme.of(context).iconTheme.color,
+          ),
+        ),
         ScaleButton(
           onTap: () {
             Get.to(

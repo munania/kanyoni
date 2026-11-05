@@ -51,8 +51,7 @@ class AlbumController extends BaseController {
         albumId); // Ensure songs are loaded before playing
     final songs = getAlbumSongs(albumId);
     if (songs.isNotEmpty) {
-      playerController.currentPlaylist.value = songs;
-      await playerController.playSong(0);
+      await playerController.playQueue(songs);
     }
   }
 

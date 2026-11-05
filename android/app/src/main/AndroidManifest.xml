@@ -1,6 +1,12 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <!-- Needed in release builds for lyrics lookup (lrclib.net). Flutter only
+         adds INTERNET automatically for debug/profile builds. -->
+    <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- Android 13+: required to show the playback notification. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+
     <!-- Base permissions -->
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
@@ -21,7 +27,7 @@
 
         <!-- Main Activity -->
         <activity
-            android:name="com.ryanheise.audioservice.AudioServiceActivity"
+            android:name=".MainActivity"
             android:exported="true"
             android:launchMode="singleTop"
             android:taskAffinity=""
@@ -69,7 +75,7 @@
         <!-- Notification Configuration -->
         <meta-data
             android:name="com.ryanheise.audioservice.channel_id"
-            android:value="com.your.app.channel"/>
+            android:value="com.example.kanyoni.channel.audio"/>
         <meta-data
             android:name="com.ryanheise.audioservice.channel_name"
             android:value="Music Playback"/>

@@ -1,8 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:hive/hive.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:permission_handler/permission_handler.dart';
 
 import 'splash_screen.dart';
 import 'utils/lazy_controller_binding.dart';
@@ -22,54 +19,11 @@ void main() async {
     debugPrint('Background initialization error: $e');
   });
 
-  // Initialize Hive asynchronously but don't block on opening boxes
-  _initializeHive();
+  // Note: Hive (used for the lyrics cache) is intentionally NOT initialised
+  // here. It is opened lazily the first time lyrics are needed, so it adds
+  // nothing to app start-up. See LyricsStore.
 
   runApp(const MyApp());
-}
-
-/// Initialize Hive database in background
-Future<void> _initializeHive() async {
-  try {
-    final appDir = await getApplicationDocumentsDirectory();
-    Hive.init(appDir.path);
-    // Open boxes lazily when needed instead of blocking startup
-    await Hive.openBox('lyricsBox');
-  } catch (e) {
-    debugPrint('Hive initialization error: $e');
-  }
-}
-
-Future<bool> requestPermissions() async {
-  // Request both permissions and return combined result
-  // For Android 13+, we need separate permissions for audio and images/video if needed.
-  // Permission.audio is generally for Android 13+ (API 33+).
-  // Permission.storage is for older versions.
-
-  Map<Permission, PermissionStatus> statuses = await [
-    Permission.storage,
-    Permission.audio,
-    // Add notification permission for Android 13+
-    Permission.notification,
-  ].request();
-
-  // Check if essential permissions are granted
-  // On Android 13+, storage might be permanently denied or restricted, but audio is what matters for music.
-  // On older Android, storage is key.
-
-  bool storageGranted = statuses[Permission.storage]?.isGranted ?? false;
-  bool audioGranted = statuses[Permission.audio]?.isGranted ?? false;
-
-  // Simple logic: if either is granted, we might be okay depending on OS version.
-  // But strictly, we want to ensure we can read files.
-
-  if (storageGranted || audioGranted) {
-    debugPrint('Permissions granted');
-    return true;
-  }
-
-  debugPrint('Permissions denied');
-  return false;
 }
 
 class MyApp extends StatelessWidget {

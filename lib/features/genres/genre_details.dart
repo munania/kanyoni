@@ -342,9 +342,10 @@ class _SongListItem extends StatelessWidget {
             child: InkWell(
               borderRadius: BorderRadius.circular(12),
               onTap: () {
-                playerController.currentPlaylist.value =
-                    genreController.getGenreSongs(genreId);
-                playerController.playSong(index);
+                playerController.playQueue(
+                  genreController.getGenreSongs(genreId),
+                  index: index,
+                );
               },
               child: Padding(
                 padding: const EdgeInsets.all(12),

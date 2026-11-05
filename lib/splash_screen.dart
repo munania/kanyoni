@@ -3,6 +3,8 @@ import 'package:get/get.dart';
 import 'package:kanyoni/app_layout.dart';
 import 'package:kanyoni/homepage.dart';
 
+import 'package:kanyoni/features/equalizer/equalizer_controller.dart';
+import 'package:kanyoni/features/lyrics/lyrics_store.dart';
 import 'package:kanyoni/utils/background_initializer.dart';
 import 'package:on_audio_query_pluse/on_audio_query.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -52,9 +54,23 @@ class _SplashScreenPageState extends State<SplashScreenPage> {
         return;
       }
 
+      // Android 13+ needs this for the playback notification. Not essential,
+      // so a denial or failure never blocks the app.
+      try {
+        await Permission.notification.request();
+      } catch (_) {}
+
       // Step 2: Wait for background initialization (40%)
       _updateProgress('Setting up audio service...', 0.4);
       await BackgroundInitializer.waitForInitialization();
+
+      // Create the equalizer now (not when its screen is first opened) so the
+      // saved settings are applied from the very first song.
+      try {
+        Get.find<EqualizerController>();
+      } catch (e) {
+        debugPrint('[SplashScreen] Equalizer init failed: $e');
+      }
 
       // Step 3: Navigate to main app immediately (60%)
       _updateProgress('Loading interface...', 0.6);
@@ -92,6 +108,11 @@ class _SplashScreenPageState extends State<SplashScreenPage> {
       ]);
 
       debugPrint('[SplashScreen] Background data loading complete');
+
+      // Open the lyrics database now that the UI is interactive and the
+      // library is loaded, so the first lyrics screen opens instantly.
+      // (Nothing is opened during start-up itself.)
+      LyricsStore.instance.warmUp();
     } catch (e) {
       debugPrint('[SplashScreen] Error loading background data: $e');
       // Don't show error - app is already usable
@@ -129,10 +150,7 @@ class _SplashScreenPageState extends State<SplashScreenPage> {
                     const SizedBox(height: 12),
                     Text(
                       _currentStep,
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey[600],
-                      ),
+                      style: TextStyle(fontSize: 14, color: Colors.grey[600]),
                     ),
                   ],
                 ),

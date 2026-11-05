@@ -23,15 +23,17 @@ class FolderController extends GetxController {
   }
 
   Future<void> _loadSongsForFolders(List<String> folderList) async {
-    for (String folder in folderList) {
+    // Query all folders concurrently instead of one after the other.
+    final results = await Future.wait(folderList.map((folder) async {
       final songs = await audioQuery.querySongs(
         path: folder,
         sortType: SongSortType.DATE_ADDED,
         orderType: OrderType.ASC_OR_SMALLER,
         uriType: UriType.EXTERNAL,
       );
-      folderSongs[folder] = await _playerController.applySongFilters(songs);
-    }
+      return MapEntry(folder, await _playerController.applySongFilters(songs));
+    }));
+    folderSongs.addEntries(results);
   }
 
   List<SongModel> getFolderSongs(String folder) => folderSongs[folder] ?? [];

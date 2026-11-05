@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 
 import 'package:iconsax/iconsax.dart';
+import 'package:kanyoni/features/tag_editor/tag_editor_page.dart';
 import 'package:kanyoni/utils/helpers/helper_functions.dart';
 import 'package:kanyoni/utils/theme/theme.dart';
 import 'package:on_audio_query_pluse/on_audio_query.dart';
@@ -62,6 +63,32 @@ class SongDetails extends StatelessWidget {
           ),
         ),
         centerTitle: true,
+        actions: [
+          IconButton(
+            tooltip: 'Edit tags',
+            icon: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: isDarkMode
+                    ? Colors.black.withValues(alpha: 0.3)
+                    : Colors.white.withValues(alpha: 0.3),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Iconsax.edit_2,
+                color: isDarkMode ? Colors.white : Colors.black,
+                size: 20,
+              ),
+            ),
+            onPressed: () async {
+              final saved = await TagEditorPage.open(context, currentSong);
+              // This page shows a snapshot of the old tags, so leave it.
+              if (saved == true && context.mounted) {
+                Navigator.of(context).pop();
+              }
+            },
+          ),
+        ],
       ),
       body: Stack(
         children: [

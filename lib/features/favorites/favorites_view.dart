@@ -248,9 +248,8 @@ class _FavoritesViewState extends State<FavoritesView>
                                       .firstWhereOrNull((s) => s.id == id))
                                   .whereType<SongModel>()
                                   .toList();
-                              playerController.currentPlaylist.value =
-                                  favoriteSongsList;
-                              playerController.playSong(index);
+                              playerController.playQueue(favoriteSongsList,
+                                  index: index);
                             },
                             child: Padding(
                               padding: const EdgeInsets.all(12),

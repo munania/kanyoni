@@ -385,8 +385,7 @@ class _SongListItem extends StatelessWidget {
             onPressed: () => playerController.toggleFavorite(song.id),
           ),
           onTap: () {
-            playerController.currentPlaylist.value = albumSongs;
-            playerController.playSong(index);
+            playerController.playQueue(albumSongs, index: index);
           },
         ),
       ),

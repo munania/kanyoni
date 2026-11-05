@@ -49,8 +49,7 @@ class ArtistController extends BaseController {
     await ensureSongsForArtistLoaded(artistId); // Ensure songs are loaded
     final songs = getArtistSongs(artistId);
     if (songs.isNotEmpty) {
-      playerController.currentPlaylist.value = songs;
-      await playerController.playSong(0);
+      await playerController.playQueue(songs);
     }
   }
 

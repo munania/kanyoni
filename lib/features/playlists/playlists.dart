@@ -180,77 +180,86 @@ class _PlaylistViewState extends State<PlaylistView>
   }
 
   void _showCreatePlaylistDialog() {
-    final nameController = TextEditingController();
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-        ),
-        title: const Text('Create Playlist'),
-        content: TextField(
-          controller: nameController,
-          decoration: const InputDecoration(
-            labelText: 'Playlist Name',
-            hintText: 'Enter playlist name',
-          ),
-          autofocus: true,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              if (nameController.text.isNotEmpty) {
-                Navigator.pop(context);
-                controller.createPlaylist(nameController.text);
-              }
-            },
-            child: const Text('Create'),
-          ),
-        ],
-      ),
+    _showNameDialog(
+      title: 'Create Playlist',
+      hint: 'Enter playlist name',
+      confirmLabel: 'Create',
+      initialText: '',
+      onConfirm: (name) => controller.createPlaylist(name),
     );
   }
 
   void _showRenamePlaylistDialog(PlaylistModel playlist) {
-    final nameController = TextEditingController(
-      text: playlist.playlist.replaceAll(' [kanyoni]', ''),
+    _showNameDialog(
+      title: 'Rename Playlist',
+      hint: 'Enter new name',
+      confirmLabel: 'Rename',
+      initialText: playlist.playlist.replaceAll(' [kanyoni]', ''),
+      ignoreId: playlist.id,
+      onConfirm: (name) => controller.renamePlaylist(playlist.id, name),
     );
+  }
+
+  /// Shared create/rename dialog. It validates before closing, so a blank or
+  /// duplicate name shows an error in the dialog instead of silently making a
+  /// second playlist with the same name.
+  void _showNameDialog({
+    required String title,
+    required String hint,
+    required String confirmLabel,
+    required String initialText,
+    required void Function(String name) onConfirm,
+    int? ignoreId,
+  }) {
+    final nameController = TextEditingController(text: initialText);
+    String? error;
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-        ),
-        title: const Text('Rename Playlist'),
-        content: TextField(
-          controller: nameController,
-          decoration: const InputDecoration(
-            labelText: 'Playlist Name',
-            hintText: 'Enter new name',
-          ),
-          autofocus: true,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              if (nameController.text.isNotEmpty) {
-                Navigator.pop(context);
-                controller.renamePlaylist(playlist.id, nameController.text);
-              }
-            },
-            child: const Text('Rename'),
-          ),
-        ],
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          void submit() {
+            final problem =
+                controller.validateName(nameController.text, ignoreId: ignoreId);
+            if (problem != null) {
+              setDialogState(() => error = problem);
+              return;
+            }
+            Navigator.pop(dialogContext);
+            onConfirm(nameController.text);
+          }
+
+          return AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
+            title: Text(title),
+            content: TextField(
+              controller: nameController,
+              decoration: InputDecoration(
+                labelText: 'Playlist Name',
+                hintText: hint,
+                errorText: error,
+              ),
+              autofocus: true,
+              textCapitalization: TextCapitalization.sentences,
+              onChanged: (_) {
+                if (error != null) setDialogState(() => error = null);
+              },
+              onSubmitted: (_) => submit(),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: submit,
+                child: Text(confirmLabel),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
