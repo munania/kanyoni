@@ -1,4 +1,3 @@
-import 'dart:ui';
 
 import 'package:flutter/material.dart';
 
@@ -7,6 +6,7 @@ import 'package:kanyoni/features/tag_editor/tag_editor_page.dart';
 import 'package:kanyoni/utils/helpers/helper_functions.dart';
 import 'package:kanyoni/utils/theme/theme.dart';
 import 'package:on_audio_query_pluse/on_audio_query.dart';
+import 'package:kanyoni/utils/widgets/artwork_backdrop.dart';
 
 class SongDetails extends StatelessWidget {
   final SongModel currentSong;
@@ -92,29 +92,8 @@ class SongDetails extends StatelessWidget {
       ),
       body: Stack(
         children: [
-          // Background Artwork with Blur
-          Positioned.fill(
-            child: QueryArtworkWidget(
-              id: currentSong.id,
-              type: ArtworkType.AUDIO,
-              quality: 100,
-              size: 1000,
-              artworkQuality: FilterQuality.high,
-              nullArtworkWidget: Container(
-                color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
-              ),
-            ),
-          ),
-          Positioned.fill(
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
-              child: Container(
-                color: Theme.of(context).scaffoldBackgroundColor.withValues(
-                      alpha: isDarkMode ? 0.7 : 0.85,
-                    ),
-              ),
-            ),
-          ),
+          // Background: the playing song's artwork (shared, cached, no per-page blur)
+          const Positioned.fill(child: ArtworkBackdrop()),
 
           // Content
           SafeArea(

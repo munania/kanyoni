@@ -135,7 +135,7 @@ class PrivacyPolicyView extends StatelessWidget {
                     isDarkMode: isDarkMode,
                     title: 'Lyrics Lookup',
                     content:
-                        'When you open the lyrics screen, the song title, artist, album and duration are sent to the free lrclib.net service to find matching lyrics. '
+                        'When you open the lyrics screen, the song title, artist, album and duration are sent to the free lrclib.net service to find matching lyrics. While the lyrics screen stays open, the same details for the next song in your queue are sent in advance so its lyrics appear instantly. '
                         'No other personal data is sent. Lyrics that were found, lyrics you add yourself and your sync adjustments are stored only on your device.',
                   ),
 

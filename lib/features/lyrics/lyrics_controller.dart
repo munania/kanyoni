@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:collection';
 
 import 'package:get/get.dart';
 import 'package:kanyoni/controllers/player_controller.dart';
@@ -10,11 +11,34 @@ import 'lyrics_model.dart';
 import 'lyrics_service.dart';
 import 'lyrics_store.dart';
 
+/// What is known about one song's lyrics. [lyrics] == null means "looked, and
+/// there are none".
+class _Loaded {
+  final LyricsModel? lyrics;
+  final bool manual;
+  final int offsetMs;
+  const _Loaded(this.lyrics, this.manual, this.offsetMs);
+
+  _Loaded withOffset(int ms) => _Loaded(lyrics, manual, ms);
+}
+
+class _Resolved {
+  final _Loaded loaded;
+
+  /// The service could not be reached, so a miss must not be remembered.
+  final bool offline;
+  const _Resolved(this.loaded, {this.offline = false});
+}
+
 /// Loads lyrics for the playing song and keeps the highlighted line in sync.
 ///
 /// The controller only does work while the lyrics view is on screen
 /// ([activate] / [deactivate]), so it costs nothing (no network, no
 /// subscriptions) when the user isn't looking at lyrics.
+///
+/// Speed: recently used lyrics are kept in memory (instant), the local reads
+/// run concurrently, the online lookup runs its requests in parallel, and
+/// while the view is open the *next* song's lyrics are fetched ahead of time.
 class LyricsController extends GetxController {
   final LyricsService _service = LyricsService();
   final LyricsStore _store = LyricsStore.instance;
@@ -43,6 +67,12 @@ class LyricsController extends GetxController {
   /// "late" if it only changes after it has already started being sung.
   static const int lookAheadMs = 650;
   static const int maxOffsetMs = 10000;
+
+  /// How many songs' lyrics stay in memory.
+  static const int _memoryLimit = 24;
+
+  final LinkedHashMap<int, _Loaded> _memory = LinkedHashMap<int, _Loaded>();
+  final Set<int> _prefetching = {};
 
   StreamSubscription<Duration>? _positionSub;
   Worker? _indexWorker;
@@ -73,9 +103,7 @@ class LyricsController extends GetxController {
     _queueWorker = ever(_player.currentPlaylist, (_) => _loadIfNeeded());
     _positionSub = _player.audioPlayer.positionStream.listen(_syncLyrics);
 
-    // Previously nothing was fetched for the song that was already playing
-    // when the lyrics view opened, so the first song always showed
-    // "No lyrics available".
+    // Fetch for the song that is already playing when the view opens.
     _loadIfNeeded();
   }
 
@@ -96,6 +124,18 @@ class LyricsController extends GetxController {
   void onClose() {
     deactivate();
     super.onClose();
+  }
+
+  // ---------------------------------------------------------------------------
+  // Memory cache
+  // ---------------------------------------------------------------------------
+
+  void _remember(int songId, _Loaded value) {
+    _memory.remove(songId); // re-insert so it counts as most recently used
+    _memory[songId] = value;
+    while (_memory.length > _memoryLimit) {
+      _memory.remove(_memory.keys.first);
+    }
   }
 
   // ---------------------------------------------------------------------------
@@ -139,69 +179,115 @@ class LyricsController extends GetxController {
     );
   }
 
+  LyricsModel _manualModel(SongModel song, String text) {
+    return LyricsModel(
+      id: song.id,
+      trackName: song.title,
+      artistName: song.artist ?? '',
+      albumName: song.album ?? '',
+      duration: (song.duration ?? 0) / 1000,
+      instrumental: false,
+      plainLyrics: text,
+      syncedLyrics: text,
+    );
+  }
+
+  /// Works out the lyrics for [song]: the user's own lyrics, then the disk
+  /// cache, then the internet. The three local reads run concurrently.
+  Future<_Resolved> _resolve(
+    SongModel song, {
+    required bool ignoreCache,
+  }) async {
+    final local = await Future.wait<dynamic>([
+      _store.getOffset(song.id),
+      _store.getManual(song.id),
+      ignoreCache
+          ? Future<CachedLyrics?>.value(null)
+          : _store.getCached(song.id),
+    ]);
+    final offset = local[0] as int;
+    final manual = local[1] as String?;
+    final cached = local[2] as CachedLyrics?;
+
+    if (manual != null && manual.trim().isNotEmpty) {
+      return _Resolved(_Loaded(_manualModel(song, manual), true, offset));
+    }
+    if (cached != null) {
+      return _Resolved(_Loaded(cached.lyrics, false, offset));
+    }
+
+    final result = await _service.lookup(_queryFor(song));
+    if (result.lyrics != null) {
+      unawaited(_store.putCached(song.id, result.lyrics));
+      return _Resolved(_Loaded(result.lyrics, false, offset));
+    }
+    if (result.networkError) {
+      return _Resolved(_Loaded(null, false, offset), offline: true);
+    }
+    // The service answered and has nothing: remember that for a few days.
+    unawaited(_store.putCached(song.id, null));
+    return _Resolved(_Loaded(null, false, offset));
+  }
+
   Future<void> _load(SongModel song, {bool ignoreCache = false}) async {
     final token = ++_token;
+
+    // Instant path: seen recently, so no spinner and no waiting at all.
+    final remembered = ignoreCache ? null : _memory[song.id];
+    if (remembered != null) {
+      _reset();
+      isLoading.value = false;
+      _show(remembered, offline: false);
+      _prefetchNext();
+      return;
+    }
+
     isLoading.value = true;
     _reset();
 
     try {
-      final savedOffset = await _store.getOffset(song.id);
-      if (token != _token) return;
-      offsetMs.value = savedOffset;
-
-      // 1. Lyrics the user typed or pasted always win.
-      final manual = await _store.getManual(song.id);
-      if (token != _token) return;
-      if (manual != null && manual.trim().isNotEmpty) {
-        isManual.value = true;
-        _apply(
-          LyricsModel(
-            id: song.id,
-            trackName: song.title,
-            artistName: song.artist ?? '',
-            albumName: song.album ?? '',
-            duration: (song.duration ?? 0) / 1000,
-            instrumental: false,
-            plainLyrics: manual,
-            syncedLyrics: manual,
-          ),
-        );
-        return;
-      }
-
-      // 2. Local cache (also remembers "not found" for a few days).
-      if (!ignoreCache) {
-        final cached = await _store.getCached(song.id);
-        if (token != _token) return;
-        if (cached != null) {
-          if (cached.lyrics != null) {
-            _apply(cached.lyrics!);
-          } else {
-            hasError.value = true;
-          }
-          return;
-        }
-      }
-
-      // 3. Online.
-      final result = await _service.lookup(_queryFor(song));
+      final resolved = await _resolve(song, ignoreCache: ignoreCache);
       if (token != _token) return;
 
-      if (result.lyrics != null) {
-        _apply(result.lyrics!);
-        unawaited(_store.putCached(song.id, result.lyrics));
-      } else {
-        hasError.value = true;
-        isOffline.value = result.networkError;
-        // Only remember a miss when the service really answered.
-        if (!result.networkError) {
-          unawaited(_store.putCached(song.id, null));
-        }
-      }
+      _show(resolved.loaded, offline: resolved.offline);
+      if (!resolved.offline) _remember(song.id, resolved.loaded);
+      _prefetchNext();
     } catch (e) {
       if (token == _token) hasError.value = true;
     } finally {
       if (token == _token) isLoading.value = false;
+    }
+  }
+
+  void _show(_Loaded loaded, {required bool offline}) {
+    offsetMs.value = loaded.offsetMs;
+    isManual.value = loaded.manual;
+    final lyrics = loaded.lyrics;
+    if (lyrics != null) {
+      _apply(lyrics);
+    } else {
+      hasError.value = true;
+      isOffline.value = offline;
+    }
+  }
+
+  /// While the user is reading lyrics, get the next song's ready so it
+  /// appears immediately when the song changes. Only runs while the lyrics
+  /// view is open.
+  Future<void> _prefetchNext() async {
+    if (!_active) return;
+    final nextIndex = _player.currentSongIndex.value + 1;
+    if (nextIndex < 0 || nextIndex >= _player.currentPlaylist.length) return;
+
+    final next = _player.currentPlaylist[nextIndex];
+    if (_memory.containsKey(next.id) || !_prefetching.add(next.id)) return;
+    try {
+      final resolved = await _resolve(next, ignoreCache: false);
+      if (!resolved.offline) _remember(next.id, resolved.loaded);
+    } catch (_) {
+      // Prefetching is best effort.
+    } finally {
+      _prefetching.remove(next.id);
     }
   }
 
@@ -243,6 +329,10 @@ class LyricsController extends GetxController {
     offsetMs.value = ms.clamp(-maxOffsetMs, maxOffsetMs).toInt();
     _syncLyrics(_player.audioPlayer.position);
     if (song != null) {
+      final remembered = _memory[song.id];
+      if (remembered != null) {
+        _memory[song.id] = remembered.withOffset(offsetMs.value);
+      }
       await _store.setOffset(song.id, offsetMs.value);
     }
   }
@@ -264,6 +354,7 @@ class LyricsController extends GetxController {
     final song = _player.activeSong;
     if (song == null) return;
 
+    _memory.remove(song.id);
     if (lyrics.trim().isEmpty) {
       await _store.deleteManual(song.id);
     } else {
@@ -275,15 +366,21 @@ class LyricsController extends GetxController {
   Future<void> deleteManualLyrics() async {
     final song = _player.activeSong;
     if (song == null) return;
+    _memory.remove(song.id);
     await _store.deleteManual(song.id);
     _loadIfNeeded(force: true);
   }
+
+  /// Drops what is remembered in memory for [songId] (e.g. after its tags
+  /// were edited, since lyrics are looked up by title and artist).
+  void forget(int songId) => _memory.remove(songId);
 
   /// Forget the cached result and search online again (e.g. wrong lyrics, or
   /// the earlier attempt happened while offline).
   Future<void> searchAgain() async {
     final song = _player.activeSong;
     if (song == null) return;
+    _memory.remove(song.id);
     await _store.deleteCached(song.id);
     _loadedSongId = song.id;
     await _load(song, ignoreCache: true);

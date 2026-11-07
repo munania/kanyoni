@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:kanyoni/controllers/player_controller.dart';
+import 'package:kanyoni/features/lyrics/lyrics_controller.dart';
 import 'package:kanyoni/features/lyrics/lyrics_store.dart';
 import 'package:kanyoni/features/playlists/controller/playlists_controller.dart';
 import 'package:on_audio_query_pluse/on_audio_query.dart';
@@ -120,6 +121,9 @@ class _TagEditorPageState extends State<TagEditorPage> {
       await _service.writeTags(widget.song.id, changes);
       // Lyrics are looked up by title/artist, so forget the old result.
       await LyricsStore.instance.deleteCached(widget.song.id);
+      if (Get.isRegistered<LyricsController>()) {
+        Get.find<LyricsController>().forget(widget.song.id);
+      }
       await player.restoreAfterEditing(resume);
       await player.onSongTagsEdited(widget.song.id);
       if (Get.isRegistered<PlaylistController>()) {

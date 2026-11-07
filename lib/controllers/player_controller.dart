@@ -5,6 +5,8 @@ import 'package:get/get.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:kanyoni/utils/helpers/path_filters.dart';
 import 'package:kanyoni/utils/helpers/queue_ops.dart';
+import 'package:kanyoni/utils/helpers/saved_queue.dart';
+import 'package:kanyoni/utils/services/queue_store.dart';
 import 'package:kanyoni/utils/services/shared_prefs_service.dart';
 import 'package:on_audio_query_pluse/on_audio_query.dart';
 import 'package:rxdart/rxdart.dart';
@@ -21,7 +23,6 @@ class PlayerController extends BaseController {
   static const String kRepeatModeKey = 'repeat_mode';
   static const String kLastSaveTimeKey = 'last_save_time';
   static const String kFavoriteSongsKey = 'favoriteSongs';
-  static const Duration kMaxRestoreThreshold = Duration(hours: 24);
   static const String kLastAppCloseTimeKey = 'last_app_close_time';
   static const Duration kScrollPositionRestoreThreshold = Duration(minutes: 30);
 
@@ -72,7 +73,6 @@ class PlayerController extends BaseController {
 
   /// Un-shuffled copy of the queue, kept only while shuffle is on.
   List<SongModel>? originalPlaylist;
-  DateTime? _lastSaveTime;
   Timer? _scrollDebounceTimer;
   Timer? _positionSaveTimer;
 
@@ -85,7 +85,19 @@ class PlayerController extends BaseController {
 
   bool _isSongQueryInProgress = false;
   bool _songsLoadedSuccessfully = false;
-  bool _shouldAttemptRestoreLastSong = false;
+
+  /// Completes when the saved settings (volume, shuffle, repeat, favourites)
+  /// have been read. Restoring the queue must wait for it: it used to race,
+  /// and restore was silently skipped when the library loaded first.
+  Future<void> _prefsReady = Future<void>.value();
+
+  /// Saving playback state is held back until the saved state has been
+  /// restored, otherwise the freshly-built default queue (the library, first
+  /// song) would overwrite what was saved.
+  bool _stateSavingEnabled = false;
+
+  Timer? _queueSaveTimer;
+  final List<Worker> _workers = [];
 
   /// Incremented on every playSong so a slow, superseded load can't start
   /// playing after the user already picked another song.
@@ -94,8 +106,15 @@ class PlayerController extends BaseController {
   @override
   void onInit() {
     super.onInit();
-    _initializePreferences();
+    _prefsReady = _initializePreferences();
     _initializeAudioPlayer();
+
+    // Remember the queue whenever it, the playing song or shuffle changes.
+    _workers.addAll([
+      ever(currentPlaylist, (_) => _scheduleQueueSave()),
+      ever(currentSongIndex, (_) => _scheduleQueueSave()),
+      ever(isShuffle, (_) => _scheduleQueueSave()),
+    ]);
   }
 
   Future<void> _initializePreferences() async {
@@ -111,15 +130,6 @@ class PlayerController extends BaseController {
   Future<void> _restoreState() async {
     try {
       final prefsInstance = await prefs;
-      final lastSaveTimeMillis = prefsInstance.getInt(kLastSaveTimeKey);
-      if (lastSaveTimeMillis != null) {
-        _lastSaveTime = DateTime.fromMillisecondsSinceEpoch(lastSaveTimeMillis);
-        _shouldAttemptRestoreLastSong =
-            DateTime.now().difference(_lastSaveTime!) <= kMaxRestoreThreshold;
-      } else {
-        _shouldAttemptRestoreLastSong = false;
-      }
-
       // Restore playback settings
       volume.value = prefsInstance.getDouble(kLastVolumeKey) ?? 1.0;
       audioPlayer.setVolume(volume.value);
@@ -218,9 +228,10 @@ class PlayerController extends BaseController {
       _songsLoadedSuccessfully = true;
       if (!_libraryLoaded.isCompleted) _libraryLoaded.complete();
 
-      if (_shouldAttemptRestoreLastSong) {
-        await _restoreLastSong();
-      }
+      // No time limit: resume where the user left off even after days.
+      await _prefsReady;
+      await _restoreLastSong();
+      _stateSavingEnabled = true;
     } catch (e) {
       _songsLoadedSuccessfully = false;
       if (kDebugMode) {
@@ -251,6 +262,9 @@ class PlayerController extends BaseController {
     }
   }
 
+  /// Brings back the queue, the playing song and its position exactly as they
+  /// were when the app was closed: same order (so a shuffled queue is still
+  /// shuffled), same shuffle state, paused at the saved position.
   Future<void> _restoreLastSong() async {
     if (songs.isEmpty) return;
     try {
@@ -258,19 +272,35 @@ class PlayerController extends BaseController {
       final lastSongId = prefsInstance.getInt(kLastSongIdKey);
       final lastPosition = prefsInstance.getInt(kLastPositionKey);
 
-      if (lastSongId == null) return;
-      final songIndex = songs.indexWhere((song) => song.id == lastSongId);
-      if (songIndex == -1) return;
+      final saved = await QueueStore.load();
+      final restored = saved?.resolve<SongModel>({
+        for (final s in songs) s.id: s,
+      });
 
-      // Make sure the queue is the library the index refers to.
-      if (currentPlaylist.length != songs.length ||
-          currentPlaylist[songIndex].id != lastSongId) {
+      if (restored != null) {
+        originalPlaylist = restored.original;
+        isShuffle.value = saved?.shuffle ?? false;
+        currentPlaylist.value = restored.items;
+        currentSongIndex.value = restored.current;
+      } else {
+        // No saved queue (first launch after updating, or unreadable file):
+        // fall back to the last played song inside the library.
+        if (lastSongId == null) return;
+        final songIndex = songs.indexWhere((song) => song.id == lastSongId);
+        if (songIndex == -1) return;
+
         currentPlaylist.value = List<SongModel>.from(songs);
+        currentSongIndex.value = songIndex;
+        // Shuffle was on, so the queue must be shuffled too.
+        if (isShuffle.value) _shuffleQueueKeepingCurrent();
       }
 
-      currentSongIndex.value = songIndex;
-      await audioPlayer.setFilePath(songs[songIndex].data);
-      if (lastPosition != null) {
+      final song = activeSong;
+      if (song == null) return;
+
+      await audioPlayer.setFilePath(song.data);
+      // The saved position belongs to the saved song only.
+      if (lastPosition != null && lastSongId == song.id) {
         await audioPlayer.seek(Duration(seconds: lastPosition));
       }
       await audioPlayer.pause();
@@ -286,6 +316,7 @@ class PlayerController extends BaseController {
   // ---------------------------------------------------------------------------
 
   Future<void> _saveState() async {
+    if (!_stateSavingEnabled) return;
     try {
       final song = activeSong;
       if (song == null) return;
@@ -322,6 +353,32 @@ class PlayerController extends BaseController {
         print('Error saving playback modes: $e');
       }
     }
+  }
+
+  void _scheduleQueueSave() {
+    if (!_stateSavingEnabled) return;
+    _queueSaveTimer?.cancel();
+    _queueSaveTimer = Timer(const Duration(milliseconds: 1500), _saveQueue);
+  }
+
+  Future<void> _saveQueue() async {
+    // An empty queue is never written: it usually means "not loaded yet", and
+    // must not erase the saved one. (Emptying the queue on purpose clears it
+    // explicitly in removeFromQueue.)
+    if (currentPlaylist.isEmpty) return;
+    final index = currentSongIndex.value;
+    final playing = activeSong;
+    await QueueStore.save(
+      SavedQueue(
+        ids: [for (final s in currentPlaylist) s.id],
+        originalIds: originalPlaylist == null
+            ? null
+            : [for (final s in originalPlaylist!) s.id],
+        currentIndex: index,
+        currentId: playing?.id ?? -1,
+        shuffle: isShuffle.value,
+      ),
+    );
   }
 
   // Method to update scroll position from UI
@@ -464,6 +521,7 @@ class PlayerController extends BaseController {
       }
 
       currentSongIndex.value = index;
+      _stateSavingEnabled = true; // the user is playing: state is now theirs
       final token = ++_playToken;
 
       try {
@@ -546,6 +604,23 @@ class PlayerController extends BaseController {
     }
   }
 
+  /// Shuffles the queue but keeps the playing song first, remembering the
+  /// original order so shuffle can be turned off again. Only the playing
+  /// entry is moved, so a song queued twice isn't lost.
+  void _shuffleQueueKeepingCurrent() {
+    if (currentPlaylist.isEmpty) return;
+    originalPlaylist ??= List<SongModel>.from(currentPlaylist);
+
+    final rest = List<SongModel>.from(currentPlaylist);
+    final index = currentSongIndex.value;
+    SongModel? playing;
+    if (index >= 0 && index < rest.length) playing = rest.removeAt(index);
+    rest.shuffle();
+
+    currentPlaylist.value = [if (playing != null) playing, ...rest];
+    currentSongIndex.value = 0;
+  }
+
   void toggleShuffle() {
     isShuffle.value = !isShuffle.value;
     _savePlaybackModes();
@@ -563,19 +638,7 @@ class PlayerController extends BaseController {
 
     if (isShuffle.value) {
       // Turning shuffle ON
-      originalPlaylist ??= List<SongModel>.from(currentPlaylist);
-
-      final tempList = List<SongModel>.from(currentPlaylist);
-      if (currentSong != null) {
-        tempList.removeWhere((song) => song.id == currentSong!.id);
-      }
-      tempList.shuffle();
-      if (currentSong != null) {
-        tempList.insert(0, currentSong);
-      }
-
-      currentPlaylist.value = tempList;
-      currentSongIndex.value = currentPlaylist.isNotEmpty ? 0 : -1;
+      _shuffleQueueKeepingCurrent();
     } else {
       // Turning shuffle OFF
       if (originalPlaylist != null) {
@@ -654,6 +717,11 @@ class PlayerController extends BaseController {
   @override
   void onClose() {
     _scrollDebounceTimer?.cancel();
+    _queueSaveTimer?.cancel();
+    for (final w in _workers) {
+      w.dispose();
+    }
+    _saveQueue();
     _stopPositionSaving();
     cancelSleepTimer();
     _saveState();
@@ -740,6 +808,7 @@ class PlayerController extends BaseController {
     if (result.items.isEmpty) {
       _playToken++;
       await audioPlayer.stop();
+      await QueueStore.clear();
       return;
     }
     if (wasPlaying) {

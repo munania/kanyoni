@@ -102,6 +102,9 @@ class ArtworkDisplay extends StatelessWidget {
           quality: 100,
           size: 1000,
           artworkQuality: FilterQuality.high,
+          // Keep showing the previous cover until the next one has loaded,
+          // instead of flashing the placeholder on every song change.
+          keepOldArtwork: true,
           nullArtworkWidget: const ThemedArtworkPlaceholder(
             iconSize: 120,
           ),
@@ -485,11 +488,16 @@ class ExtraControls extends StatelessWidget {
   final int songId;
   final VoidCallback onLyricsTap;
 
+  /// Whether the lyrics are currently showing, so the button can light up the
+  /// same way the sleep timer's does when it is active.
+  final RxBool lyricsVisible;
+
   const ExtraControls({
     super.key,
     required this.playerController,
     required this.songId,
     required this.onLyricsTap,
+    required this.lyricsVisible,
   });
 
   @override
@@ -502,11 +510,26 @@ class ExtraControls extends StatelessWidget {
       children: [
         ScaleButton(
           onTap: onLyricsTap,
-          child: Icon(
-            Iconsax.book,
-            size: iconSize,
-            color: Theme.of(context).iconTheme.color,
-          ),
+          child: Obx(() {
+            final isActive = lyricsVisible.value;
+            return Container(
+              padding: const EdgeInsets.all(8),
+              decoration: isActive
+                  ? BoxDecoration(
+                      color:
+                          Theme.of(context).primaryColor.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    )
+                  : null,
+              child: Icon(
+                Iconsax.document_text,
+                size: iconSize,
+                color: isActive
+                    ? Theme.of(context).primaryColor
+                    : Theme.of(context).iconTheme.color,
+              ),
+            );
+          }),
         ),
         ScaleButton(
           onTap: () {
@@ -855,7 +878,7 @@ class ExtraControls extends StatelessWidget {
             );
           },
           child: Icon(
-            Icons.queue_music_rounded,
+            Iconsax.music_library_2,
             size: iconSize,
             color: Theme.of(context).iconTheme.color,
           ),

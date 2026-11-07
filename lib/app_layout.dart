@@ -70,6 +70,11 @@ class _AppLayoutState extends State<AppLayout> {
             top: Radius.circular(AppTheme.cornerRadius),
           ),
           onPanelSlide: (position) => _panelPosition.value = position,
+          // Explicit end states: if a drag is interrupted the last slide value
+          // can be stale, and the mini player must never stay un-tappable
+          // while the panel is actually closed.
+          onPanelClosed: () => _panelPosition.value = 0,
+          onPanelOpened: () => _panelPosition.value = 1,
           panel: NowPlayingPanel(
             playerController: playerController,
           ),

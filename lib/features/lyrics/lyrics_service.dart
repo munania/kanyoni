@@ -26,7 +26,7 @@ class LyricsLookupResult {
 /// timestamps line up with the file the user is actually playing.
 class LyricsService {
   static const String _host = 'lrclib.net';
-  static const Duration _timeout = Duration(seconds: 8);
+  static const Duration _timeout = Duration(seconds: 6);
   static const Map<String, String> _headers = {
     'User-Agent': 'Kanyoni/1.0 (https://github.com/munania/kanyoni)',
   };
@@ -61,73 +61,91 @@ class LyricsService {
     final artists = LyricsMatcher.artistVariants(q);
     final durationInt = q.durationSec > 0 ? q.durationSec.round() : 0;
     final album = LyricsMatcher.isUnknown(q.album) ? '' : q.album.trim();
+    final mainArtist = artists.isNotEmpty ? artists.first : '';
 
-    // 1. Exact lookups (fast path for well-tagged files).
-    final exactTried = <String>{};
-    for (var i = 0; i < titles.length && i < 2; i++) {
-      for (var j = 0; j < artists.length && j < 2; j++) {
-        final key = '${titles[i]}|${artists[j]}';
-        if (!exactTried.add(key)) continue;
+    final pool = <LyricsModel>[];
+    final seenIds = <int>{};
+
+    /// One exact lookup. Returns the lyrics only if they really are this song.
+    Future<LyricsModel?> exact(String title, String artist) async {
+      try {
         final data = await fetch('/api/get', {
-          'track_name': titles[i],
-          'artist_name': artists[j],
+          'track_name': title,
+          'artist_name': artist,
           if (album.isNotEmpty) 'album_name': album,
           if (durationInt > 0) 'duration': durationInt.toString(),
         });
         if (data is Map<String, dynamic>) {
-          final model = LyricsModel.fromJson(data);
-          final best = LyricsMatcher.pickBest([model], q);
-          if (best != null) return LyricsLookupResult(lyrics: best);
+          return LyricsMatcher.pickBest([LyricsModel.fromJson(data)], q);
         }
-      }
+      } catch (_) {}
+      return null;
     }
 
-    // 2. Searches. Candidates are pooled so the best one across all
-    //    queries wins.
-    final pool = <LyricsModel>[];
-    final seenIds = <int>{};
-
-    Future<LyricsModel?> search(Map<String, String> params) async {
-      final data = await fetch('/api/search', params);
-      if (data is List) {
-        for (final item in data) {
-          if (item is Map<String, dynamic>) {
-            final model = LyricsModel.fromJson(item);
-            if (model.id == 0 || seenIds.add(model.id)) pool.add(model);
+    /// One search. Candidates go into a shared pool; the best one is chosen
+    /// once the searches are done.
+    Future<void> search(Map<String, String> params) async {
+      try {
+        final data = await fetch('/api/search', params);
+        if (data is List) {
+          for (final item in data) {
+            if (item is Map<String, dynamic>) {
+              final model = LyricsModel.fromJson(item);
+              if (model.id == 0 || seenIds.add(model.id)) pool.add(model);
+            }
           }
         }
-      }
-      return LyricsMatcher.pickBest(pool, q);
+      } catch (_) {}
     }
 
-    final mainArtist = artists.isNotEmpty ? artists.first : '';
-
-    // 2a. Structured search with the cleaned title.
-    var best = await search({
+    // Round 1: the exact lookup and two searches, all at the same time. The
+    // old code ran them one after another, so a song that needed the second
+    // or third query waited for every earlier request first.
+    final exactMain = mainArtist.isEmpty
+        ? Future<LyricsModel?>.value(null)
+        : exact(titles.first, mainArtist);
+    final structured = search({
       'track_name': titles.first,
       if (mainArtist.isNotEmpty) 'artist_name': mainArtist,
     });
+    final freeText = search({'q': '${titles.first} $mainArtist'.trim()});
+
+    final quickHit = await exactMain;
+    if (quickHit != null) return LyricsLookupResult(lyrics: quickHit);
+
+    await Future.wait([structured, freeText]);
+    var best = LyricsMatcher.pickBest(pool, q);
     if (best != null) return LyricsLookupResult(lyrics: best);
 
-    // 2b. Free-text search ("title artist").
-    best = await search({'q': '${titles.first} $mainArtist'.trim()});
+    // Round 2: every remaining variant, again all at once.
+    final tried = <String>{'${titles.first}|$mainArtist'};
+    final exacts = <Future<LyricsModel?>>[];
+    for (var i = 0; i < titles.length && i < 2; i++) {
+      for (var j = 0; j < artists.length && j < 2; j++) {
+        if (tried.add('${titles[i]}|${artists[j]}')) {
+          exacts.add(exact(titles[i], artists[j]));
+        }
+      }
+    }
+    final searches = <Future<void>>[
+      // Another title variant (brackets stripped / from the file name).
+      if (titles.length > 1)
+        search({
+          'track_name': titles[1],
+          if (mainArtist.isNotEmpty) 'artist_name': mainArtist,
+        }),
+      // Title only: covers a wrong or missing artist tag (the matcher still
+      // demands a near-identical length in that case).
+      if (mainArtist.isNotEmpty) search({'q': titles.first}),
+    ];
+
+    final exactResults = await Future.wait(exacts);
+    await Future.wait(searches);
+    for (final hit in exactResults) {
+      if (hit != null) return LyricsLookupResult(lyrics: hit);
+    }
+    best = LyricsMatcher.pickBest(pool, q);
     if (best != null) return LyricsLookupResult(lyrics: best);
-
-    // 2c. Another title variant (brackets stripped / from file name).
-    if (titles.length > 1) {
-      best = await search({
-        'track_name': titles[1],
-        if (mainArtist.isNotEmpty) 'artist_name': mainArtist,
-      });
-      if (best != null) return LyricsLookupResult(lyrics: best);
-    }
-
-    // 2d. Title only; covers wrong or missing artist tags (the matcher still
-    //     requires a near-identical length in that case).
-    if (mainArtist.isNotEmpty) {
-      best = await search({'q': titles.first});
-      if (best != null) return LyricsLookupResult(lyrics: best);
-    }
 
     return LyricsLookupResult(networkError: !reachable);
   }

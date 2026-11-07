@@ -62,6 +62,11 @@ class _SplashScreenPageState extends State<SplashScreenPage> {
 
       // Step 2: Wait for background initialization (40%)
       _updateProgress('Setting up audio service...', 0.4);
+      // Open the lyrics database right away, in parallel with everything else
+      // (it is not awaited and not needed for start-up). By the time anyone
+      // taps the lyrics button it is long since ready.
+      LyricsStore.instance.warmUp();
+
       await BackgroundInitializer.waitForInitialization();
 
       // Create the equalizer now (not when its screen is first opened) so the
@@ -109,10 +114,6 @@ class _SplashScreenPageState extends State<SplashScreenPage> {
 
       debugPrint('[SplashScreen] Background data loading complete');
 
-      // Open the lyrics database now that the UI is interactive and the
-      // library is loaded, so the first lyrics screen opens instantly.
-      // (Nothing is opened during start-up itself.)
-      LyricsStore.instance.warmUp();
     } catch (e) {
       debugPrint('[SplashScreen] Error loading background data: $e');
       // Don't show error - app is already usable

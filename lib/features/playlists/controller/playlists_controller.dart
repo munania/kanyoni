@@ -122,8 +122,9 @@ class PlaylistController extends BaseController {
   Future<void> _loadPlaylistSongs(int playlistId, {_Library? library}) async {
     try {
       final lib = library ?? _buildLibrary();
-      if (lib.songs.isEmpty)
+      if (lib.songs.isEmpty) {
         return; // never cache results from an empty library
+      }
 
       final entries = await audioQuery.queryAudiosFrom(
         AudiosFromType.PLAYLIST,

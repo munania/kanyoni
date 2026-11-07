@@ -1,4 +1,3 @@
-import 'dart:ui';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -6,13 +5,13 @@ import 'package:get/get.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:kanyoni/controllers/player_controller.dart';
 import 'package:kanyoni/features/now_playing/now_playing_panel.dart';
-import 'package:kanyoni/features/now_playing/now_playing_widgets.dart';
 import 'package:kanyoni/features/playlists/controller/playlists_controller.dart';
 import 'package:kanyoni/features/playlists/playlist_song_card.dart';
 import 'package:kanyoni/utils/services/shared_prefs_service.dart';
 import 'package:kanyoni/utils/theme/theme.dart';
 import 'package:on_audio_query_pluse/on_audio_query.dart';
 import 'package:sliding_up_panel/sliding_up_panel.dart';
+import 'package:kanyoni/utils/widgets/artwork_backdrop.dart';
 
 class PlaylistDetailsView extends StatefulWidget {
   final PlaylistModel playlist;
@@ -65,62 +64,17 @@ class _PlaylistDetailsViewState extends State<PlaylistDetailsView>
           playerController: _playerController,
         ),
         body: Obx(() {
-          // Get current song for background artwork
-          final currentSongIndex = _playerController.currentSongIndex.value;
-          final hasCurrentSong = currentSongIndex >= 0 &&
-              currentSongIndex < _playerController.currentPlaylist.length;
-          final currentSong = hasCurrentSong
-              ? _playerController.currentPlaylist[currentSongIndex]
-              : null;
+          // The page background now follows the playing song by itself
+          // (ArtworkBackdrop), so this page no longer rebuilds on every song
+          // change. This read only keeps the Obx valid; it changes just when
+          // the sort order does.
+          // ignore: unnecessary_statements
+          _playerController.currentSortType.value;
 
           return Stack(
             children: [
-              // Background Artwork with Blur
-              RepaintBoundary(
-                child: Stack(
-                  children: [
-                    if (currentSong != null)
-                      Positioned.fill(
-                        child: QueryArtworkWidget(
-                          id: currentSong.id,
-                          type: ArtworkType.AUDIO,
-                          quality: 100,
-                          size: 1000,
-                          artworkQuality: FilterQuality.high,
-                          nullArtworkWidget: Container(
-                            color: Theme.of(context).scaffoldBackgroundColor,
-                          ),
-                        ),
-                      )
-                    else
-                      const Positioned.fill(
-                        child: ThemedArtworkPlaceholder(
-                          iconSize: 120,
-                        ),
-                      ),
-                    // Blur Effect
-                    Positioned.fill(
-                      child: ClipRect(
-                        child: BackdropFilter(
-                          filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
-                          child: Container(
-                            color: Theme.of(context)
-                                .scaffoldBackgroundColor
-                                .withValues(
-                                  alpha: isDarkMode ? 0.7 : 0.85,
-                                ),
-                            child: Container(
-                              color: Theme.of(context)
-                                  .primaryColor
-                                  .withValues(alpha: 0.05),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+              // Background: the playing song's artwork (shared, cached, no per-page blur)
+              const Positioned.fill(child: ArtworkBackdrop()),
 
               // Content
               CustomScrollView(
