@@ -180,6 +180,22 @@ class LyricsStore {
     }
   }
 
+  /// Deletes every downloaded lyrics result (and "not found" marker). Lyrics
+  /// the user typed in and sync offsets are kept. Returns how many were removed.
+  Future<int> clearCached() async {
+    try {
+      final box = await _open();
+      final keys = box.keys
+          .where((k) => k is String && k.startsWith('c:'))
+          .toList();
+      await box.deleteAll(keys);
+      return keys.length;
+    } catch (e) {
+      if (kDebugMode) print('LyricsStore.clearCached: $e');
+      return 0;
+    }
+  }
+
   // --- sync offset -----------------------------------------------------------
 
   Future<int> getOffset(int songId) async {

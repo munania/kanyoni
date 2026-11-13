@@ -1,12 +1,18 @@
 import 'dart:async';
+import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:kanyoni/controllers/player_controller.dart';
+import 'package:kanyoni/features/now_playing/now_playing_widgets.dart';
 import 'package:kanyoni/features/settings/folder_blacklist.dart';
 import 'package:kanyoni/utils/services/shared_prefs_service.dart';
+import 'package:on_audio_query_pluse/on_audio_query.dart';
 import 'package:kanyoni/utils/widgets/artwork_backdrop.dart';
+import 'package:kanyoni/utils/widgets/settings_tiles.dart';
+import 'package:kanyoni/features/lyrics/lyrics_store.dart';
+import 'package:kanyoni/features/lyrics/lyrics_controller.dart';
 
 class BehaviorSettingsScreen extends StatefulWidget {
   const BehaviorSettingsScreen({super.key});
@@ -219,6 +225,42 @@ class _BehaviorSettingsScreenState extends State<BehaviorSettingsScreen> {
                         ),
                       ],
                     ),
+                  ),
+
+                  const SizedBox(height: 4),
+
+                  SettingsTile(
+                    icon: Icons.refresh_rounded,
+                    title: 'Rescan library',
+                    subtitle: 'Look for new or removed songs now',
+                    onTap: () async {
+                      await _playerController.refreshSongs();
+                      Get.snackbar(
+                        'Library updated',
+                        '${_playerController.songs.length} songs found',
+                        snackPosition: SnackPosition.BOTTOM,
+                      );
+                    },
+                  ),
+
+                  SettingsTile(
+                    icon: Iconsax.trash,
+                    title: 'Clear lyrics cache',
+                    subtitle:
+                        'Remove downloaded lyrics. Lyrics you added yourself are kept',
+                    onTap: () async {
+                      final removed = await LyricsStore.instance.clearCached();
+                      if (Get.isRegistered<LyricsController>()) {
+                        Get.find<LyricsController>().clearMemory();
+                      }
+                      Get.snackbar(
+                        'Lyrics cache cleared',
+                        removed == 0
+                            ? 'Nothing to clear'
+                            : 'Removed $removed saved ${removed == 1 ? 'result' : 'results'}',
+                        snackPosition: SnackPosition.BOTTOM,
+                      );
+                    },
                   ),
                 ],
               ),

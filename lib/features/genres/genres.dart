@@ -1,3 +1,4 @@
+import 'dart:ui';
 
 import 'package:azlistview/azlistview.dart';
 import 'package:flutter/material.dart';
@@ -5,6 +6,7 @@ import 'package:get/get.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:kanyoni/controllers/player_controller.dart';
 import 'package:kanyoni/features/genres/controller/genres_controller.dart';
+import 'package:kanyoni/features/now_playing/now_playing_widgets.dart';
 import 'package:kanyoni/utils/theme/theme.dart';
 import 'package:on_audio_query_pluse/on_audio_query.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -13,16 +15,13 @@ import 'genre_card.dart';
 import 'genre_details.dart';
 import 'genre_grid_card.dart';
 import 'package:kanyoni/utils/widgets/artwork_backdrop.dart';
+import 'package:kanyoni/utils/helpers/alpha_index.dart';
 
 class GenreBean extends ISuspensionBean {
   final GenreModel genre;
   String tagIndex;
 
-  GenreBean(this.genre)
-      : tagIndex = genre.genre.isNotEmpty &&
-                RegExp(r'[A-Z]').hasMatch(genre.genre[0].toUpperCase())
-            ? genre.genre[0].toUpperCase()
-            : '#';
+  GenreBean(this.genre) : tagIndex = AlphaIndex.bucketFor(genre.genre);
 
   @override
   String getSuspensionTag() => tagIndex;
@@ -93,9 +92,8 @@ class _GenreViewState extends State<GenreView>
         final genreBeans = genreController.genres
             .map((genre) => GenreBean(genre))
             .toList()
-          ..sort((a, b) => a.genre.genre
-              .toLowerCase()
-              .compareTo(b.genre.genre.toLowerCase()));
+          ..sort((a, b) =>
+              AlphaIndex.compareNames(a.genre.genre, b.genre.genre));
 
         final List<ISuspensionBean> azItems = [];
         if (!_isGridView) {
@@ -103,8 +101,7 @@ class _GenreViewState extends State<GenreView>
           azItems.addAll(genreBeans);
         }
 
-        final tags =
-            List.generate(26, (index) => String.fromCharCode(index + 65));
+        final tags = AlphaIndex.letters; // '#', then A–Z
 
         return Stack(
           children: [
@@ -156,9 +153,11 @@ class _GenreViewState extends State<GenreView>
                     padding: const EdgeInsets.all(16),
                     sliver: SliverGrid(
                       gridDelegate:
-                          const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 2,
-                        childAspectRatio: 0.65,
+                          const SliverGridDelegateWithMaxCrossAxisExtent(
+                          // ~2 columns on a phone, more on tablets, foldables
+                          // and landscape (a fixed 2 made cards huge there).
+                          maxCrossAxisExtent: 200,
+                          childAspectRatio: 0.65,
                         crossAxisSpacing: 16,
                         mainAxisSpacing: 16,
                       ),

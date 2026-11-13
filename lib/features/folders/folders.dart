@@ -1,9 +1,12 @@
+import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:kanyoni/controllers/player_controller.dart';
+import 'package:kanyoni/features/now_playing/now_playing_widgets.dart';
 import 'package:kanyoni/utils/theme/theme.dart';
+import 'package:on_audio_query_pluse/on_audio_query.dart';
 import 'package:path/path.dart' as path;
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -176,8 +179,10 @@ class _FoldersViewState extends State<FoldersView>
                       padding: const EdgeInsets.all(16),
                       sliver: SliverGrid(
                         gridDelegate:
-                            const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
+                            const SliverGridDelegateWithMaxCrossAxisExtent(
+                          // ~2 columns on a phone, more on tablets, foldables
+                          // and landscape (a fixed 2 made cards huge there).
+                          maxCrossAxisExtent: 200,
                           childAspectRatio: 0.65,
                           crossAxisSpacing: 16,
                           mainAxisSpacing: 16,

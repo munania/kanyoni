@@ -1,11 +1,15 @@
+import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:kanyoni/controllers/player_controller.dart';
 import 'package:kanyoni/controllers/theme_controller.dart';
+import 'package:kanyoni/features/now_playing/now_playing_widgets.dart';
 import 'package:kanyoni/utils/theme/theme.dart';
+import 'package:on_audio_query_pluse/on_audio_query.dart';
 import 'package:kanyoni/utils/widgets/artwork_backdrop.dart';
+import 'package:kanyoni/utils/widgets/settings_tiles.dart';
 
 class ThemeSettingsView extends StatelessWidget {
   final ThemeController themeController = Get.find<ThemeController>();
@@ -204,6 +208,31 @@ class ThemeSettingsView extends StatelessWidget {
                 ),
 
                 const SizedBox(height: 32),
+
+                // Background Section
+                Text(
+                  'Background',
+                  style: AppTheme.bodyLarge.copyWith(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                  ),
+                ),
+                const SizedBox(height: 12),
+
+                Obx(() => SettingsTile(
+                      icon: Icons.wallpaper_rounded,
+                      title: 'Artwork background',
+                      subtitle:
+                          "Use the playing song's cover as a soft page background",
+                      trailing: Switch(
+                        value: themeController.artworkBackground.value,
+                        onChanged: themeController.setArtworkBackground,
+                      ),
+                      onTap: () => themeController.setArtworkBackground(
+                          !themeController.artworkBackground.value),
+                    )),
+
+                const SizedBox(height: 16),
 
                 // Waveform Style Section
                 Text(

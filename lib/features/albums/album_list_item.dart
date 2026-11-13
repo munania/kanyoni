@@ -54,7 +54,7 @@ class AlbumListItem extends StatelessWidget {
                       child: QueryArtworkWidget(
                         id: album.id,
                         type: ArtworkType.ALBUM,
-                        quality: 100,
+                        quality: 85,
                         size: 200,
                         artworkQuality: FilterQuality.high,
                         nullArtworkWidget: Container(

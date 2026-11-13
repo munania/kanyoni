@@ -52,7 +52,7 @@ class GenreGridCard extends StatelessWidget {
                 child: QueryArtworkWidget(
                   id: genre.id,
                   type: ArtworkType.GENRE,
-                  quality: 100,
+                  quality: 85,
                   size: 500,
                   artworkQuality: FilterQuality.high,
                   nullArtworkWidget: Container(

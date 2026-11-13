@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:get/get.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:kanyoni/utils/helpers/path_filters.dart';
@@ -13,7 +14,7 @@ import 'package:rxdart/rxdart.dart';
 
 import 'base_controller.dart';
 
-class PlayerController extends BaseController {
+class PlayerController extends BaseController with WidgetsBindingObserver {
   // SharedPreferences keys
   static const String kLastSongIdKey = 'last_song_id';
   static const String kLastPositionKey = 'last_position_seconds';
@@ -106,6 +107,7 @@ class PlayerController extends BaseController {
   @override
   void onInit() {
     super.onInit();
+    WidgetsBinding.instance.addObserver(this);
     _prefsReady = _initializePreferences();
     _initializeAudioPlayer();
 
@@ -167,6 +169,20 @@ class PlayerController extends BaseController {
   // Library loading
   // ---------------------------------------------------------------------------
 
+  /// Text sorts run A→Z; "date added" and "duration" run newest/longest
+  /// first. Every sort used to be descending, so sorting by Name, Artist or
+  /// Album listed Z→A.
+  OrderType _orderFor(SongSortType type) {
+    switch (type) {
+      case SongSortType.TITLE:
+      case SongSortType.ARTIST:
+      case SongSortType.ALBUM:
+        return OrderType.ASC_OR_SMALLER;
+      default:
+        return OrderType.DESC_OR_GREATER;
+    }
+  }
+
   Future<void> refreshSongs({SongSortType? sortType}) async {
     if (_isSongQueryInProgress) {
       return;
@@ -180,7 +196,7 @@ class PlayerController extends BaseController {
     try {
       final queriedSongs = await audioQuery.querySongs(
         sortType: currentSortType.value,
-        orderType: OrderType.DESC_OR_GREATER,
+        orderType: _orderFor(currentSortType.value),
         uriType: UriType.EXTERNAL,
         ignoreCase: true,
       );
@@ -219,7 +235,7 @@ class PlayerController extends BaseController {
     try {
       final queriedSongs = await audioQuery.querySongs(
         sortType: currentSortType.value,
-        orderType: OrderType.DESC_OR_GREATER,
+        orderType: _orderFor(currentSortType.value),
         uriType: UriType.EXTERNAL,
         ignoreCase: true,
       );
@@ -714,8 +730,26 @@ class PlayerController extends BaseController {
         ),
       );
 
+  DateTime? _lastForegroundRefresh;
+
+  /// New or deleted music (added from a computer, downloaded while the app was
+  /// in the background) used to need an app restart to show up. Rescan when
+  /// the app returns to the foreground, at most once a minute.
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state != AppLifecycleState.resumed || !_songsLoadedSuccessfully) return;
+    final last = _lastForegroundRefresh;
+    final now = DateTime.now();
+    if (last != null && now.difference(last) < const Duration(minutes: 1)) {
+      return;
+    }
+    _lastForegroundRefresh = now;
+    unawaited(refreshSongs());
+  }
+
   @override
   void onClose() {
+    WidgetsBinding.instance.removeObserver(this);
     _scrollDebounceTimer?.cancel();
     _queueSaveTimer?.cancel();
     for (final w in _workers) {

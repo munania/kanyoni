@@ -371,6 +371,9 @@ class LyricsController extends GetxController {
     _loadIfNeeded(force: true);
   }
 
+  /// Drops everything remembered in memory (after the cache was cleared).
+  void clearMemory() => _memory.clear();
+
   /// Drops what is remembered in memory for [songId] (e.g. after its tags
   /// were edited, since lyrics are looked up by title and artist).
   void forget(int songId) => _memory.remove(songId);

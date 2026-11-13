@@ -8,6 +8,9 @@ class ThemeController extends GetxController {
   final RxString themeMode = 'system'.obs; // 'system', 'light', 'dark'
   final RxString themeColor = 'blue'.obs; // Default color theme
 
+  /// Whether pages use the playing song's artwork as a soft background.
+  final RxBool artworkBackground = true.obs;
+
   final RxString waveformStyle =
       'Polygon'.obs; // 'Polygon', 'Rectangle', 'Squiggly', 'Curved'
 
@@ -49,13 +52,28 @@ class ThemeController extends GetxController {
       themeColor.value = savedColor;
     }
 
+    // Load background preference (default on)
+    artworkBackground.value = prefs.getBool('artworkBackground') ?? true;
+
     // Load waveform style
     final savedWaveformStyle = prefs.getString('waveformStyle');
     if (savedWaveformStyle != null &&
-        ['Polygon', 'Rectangle', 'Squiggly', 'Curved']
-            .contains(savedWaveformStyle)) {
+        [
+          'Polygon',
+          'Rectangle',
+          'Squiggly',
+          'Curved',
+        ].contains(savedWaveformStyle)) {
       waveformStyle.value = savedWaveformStyle;
     }
+  }
+
+  Future<void> setArtworkBackground(bool enabled) async {
+    artworkBackground.value = enabled;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('artworkBackground', enabled);
+    } catch (_) {}
   }
 
   // Set theme mode (system/light/dark)
@@ -99,7 +117,8 @@ class ThemeController extends GetxController {
 
   // Get current primary color based on theme mode
   Color get primaryColor {
-    final colorOption = AppColors.themeColors[themeColor.value] ??
+    final colorOption =
+        AppColors.themeColors[themeColor.value] ??
         AppColors.themeColors['blue']!;
 
     return isDarkMode ? colorOption.dark : colorOption.light;

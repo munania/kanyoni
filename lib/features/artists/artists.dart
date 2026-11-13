@@ -1,3 +1,4 @@
+import 'dart:ui';
 
 import 'package:azlistview/azlistview.dart';
 import 'package:flutter/material.dart';
@@ -5,6 +6,7 @@ import 'package:get/get.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:kanyoni/controllers/player_controller.dart';
 import 'package:kanyoni/features/artists/controller/artists_controller.dart';
+import 'package:kanyoni/features/now_playing/now_playing_widgets.dart';
 import 'package:kanyoni/utils/theme/theme.dart';
 import 'package:on_audio_query_pluse/on_audio_query.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -13,16 +15,17 @@ import 'artist_grid_card.dart';
 import 'artists_card.dart';
 import 'artists_details.dart';
 import 'package:kanyoni/utils/widgets/artwork_backdrop.dart';
+import 'package:kanyoni/utils/helpers/alpha_index.dart';
 
 class ArtistBean extends ISuspensionBean {
   final ArtistModel artist;
   String tagIndex = "";
 
+  // Uses the shared rules (accents ignored, '#' for digits/other alphabets).
+  // It used to read artist[0] before checking the name wasn't empty, which
+  // crashed the whole page for an artist with an empty name.
   ArtistBean(this.artist) {
-    final firstChar = artist.artist[0].toUpperCase();
-    tagIndex = artist.artist.isNotEmpty
-        ? (RegExp(r'[A-Z]').hasMatch(firstChar) ? firstChar : '#')
-        : '#';
+    tagIndex = AlphaIndex.bucketFor(artist.artist);
   }
 
   @override
@@ -94,9 +97,8 @@ class _ArtistsViewState extends State<ArtistsView>
         final artistBeans = artistController.artists
             .map((artist) => ArtistBean(artist))
             .toList()
-          ..sort((a, b) => a.artist.artist
-              .toLowerCase()
-              .compareTo(b.artist.artist.toLowerCase()));
+          ..sort((a, b) =>
+              AlphaIndex.compareNames(a.artist.artist, b.artist.artist));
 
         final List<ISuspensionBean> azItems = [];
         if (!_isGridView) {
@@ -104,8 +106,7 @@ class _ArtistsViewState extends State<ArtistsView>
           azItems.addAll(artistBeans);
         }
 
-        final tags =
-            List.generate(26, (index) => String.fromCharCode(index + 65));
+        final tags = AlphaIndex.letters; // '#', then A–Z
 
         return Stack(
           children: [
@@ -157,9 +158,11 @@ class _ArtistsViewState extends State<ArtistsView>
                     padding: const EdgeInsets.all(16),
                     sliver: SliverGrid(
                       gridDelegate:
-                          const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 2,
-                        childAspectRatio: 0.65,
+                          const SliverGridDelegateWithMaxCrossAxisExtent(
+                          // ~2 columns on a phone, more on tablets, foldables
+                          // and landscape (a fixed 2 made cards huge there).
+                          maxCrossAxisExtent: 200,
+                          childAspectRatio: 0.65,
                         crossAxisSpacing: 16,
                         mainAxisSpacing: 16,
                       ),

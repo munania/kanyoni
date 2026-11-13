@@ -56,7 +56,7 @@ class PlaylistSongCard extends StatelessWidget {
                     child: QueryArtworkWidget(
                       id: song.id,
                       type: ArtworkType.AUDIO,
-                      quality: 100,
+                      quality: 85,
                       size: 500,
                       artworkQuality: FilterQuality.high,
                       nullArtworkWidget: Container(

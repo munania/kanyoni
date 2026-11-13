@@ -6,6 +6,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:kanyoni/controllers/player_controller.dart';
+import 'package:kanyoni/controllers/theme_controller.dart';
 import 'package:kanyoni/features/now_playing/now_playing_widgets.dart'
     show ThemedArtworkPlaceholder;
 import 'package:on_audio_query_pluse/on_audio_query.dart';
@@ -149,6 +150,7 @@ class ArtworkBackdrop extends StatefulWidget {
 
 class _ArtworkBackdropState extends State<ArtworkBackdrop> {
   final PlayerController _player = Get.find<PlayerController>();
+  final ThemeController _theme = Get.find<ThemeController>();
   final ArtworkBackdropCache _cache = ArtworkBackdropCache.instance;
   final List<Worker> _workers = [];
 
@@ -162,6 +164,11 @@ class _ArtworkBackdropState extends State<ArtworkBackdrop> {
     _workers.addAll([
       ever(_player.currentSongIndex, (_) => _update()),
       ever(_player.currentPlaylist, (_) => _update()),
+      // Turning the setting on/off: forget what is shown and re-evaluate.
+      ever(_theme.artworkBackground, (_) {
+        _songId = null;
+        _update();
+      }),
     ]);
     _update(initial: true);
   }
@@ -178,6 +185,20 @@ class _ArtworkBackdropState extends State<ArtworkBackdrop> {
     final id = _player.activeSong?.id;
     if (id == _songId && !initial) return;
     _songId = id;
+
+    // Disabled in settings: do no artwork work at all.
+    if (!_theme.artworkBackground.value) {
+      if (initial) {
+        _shownSongId = null;
+        _image = null;
+      } else if (mounted) {
+        setState(() {
+          _shownSongId = null;
+          _image = null;
+        });
+      }
+      return;
+    }
 
     void apply(int? songId, ui.Image? image) {
       if (initial) {
@@ -220,34 +241,38 @@ class _ArtworkBackdropState extends State<ArtworkBackdrop> {
     final scaffoldColor = theme.scaffoldBackgroundColor;
 
     return RepaintBoundary(
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          if (_songId == null)
-            const ThemedArtworkPlaceholder(iconSize: 120)
-          else
-            AnimatedSwitcher(
-              duration: const Duration(milliseconds: 500),
-              child: _image == null
-                  ? ColoredBox(
-                      key: const ValueKey<int>(-1),
-                      color: scaffoldColor,
-                    )
-                  : SizedBox.expand(
-                      key: ValueKey<int>(_shownSongId ?? -1),
-                      child: RawImage(
-                        image: _image,
-                        fit: BoxFit.cover,
-                        filterQuality: FilterQuality.medium,
+      child: Obx(
+        () => Stack(
+          fit: StackFit.expand,
+          children: [
+            if (!_theme.artworkBackground.value)
+              ColoredBox(color: scaffoldColor)
+            else if (_songId == null)
+              const ThemedArtworkPlaceholder(iconSize: 120)
+            else
+              AnimatedSwitcher(
+                duration: const Duration(milliseconds: 500),
+                child: _image == null
+                    ? ColoredBox(
+                        key: const ValueKey<int>(-1),
+                        color: scaffoldColor,
+                      )
+                    : SizedBox.expand(
+                        key: ValueKey<int>(_shownSongId ?? -1),
+                        child: RawImage(
+                          image: _image,
+                          fit: BoxFit.cover,
+                          filterQuality: FilterQuality.medium,
+                        ),
                       ),
-                    ),
+              ),
+            // The tint that used to sit on top of the runtime blur.
+            ColoredBox(
+              color: scaffoldColor.withValues(alpha: isDarkMode ? 0.7 : 0.85),
             ),
-          // The tint that used to sit on top of the runtime blur.
-          ColoredBox(
-            color: scaffoldColor.withValues(alpha: isDarkMode ? 0.7 : 0.85),
-          ),
-          ColoredBox(color: theme.primaryColor.withValues(alpha: 0.05)),
-        ],
+            ColoredBox(color: theme.primaryColor.withValues(alpha: 0.05)),
+          ],
+        ),
       ),
     );
   }

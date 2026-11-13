@@ -1,14 +1,17 @@
+import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:kanyoni/controllers/base_controller.dart';
 import 'package:kanyoni/controllers/player_controller.dart';
+import 'package:kanyoni/features/now_playing/now_playing_widgets.dart';
 import 'package:kanyoni/features/settings/behavior_settings.dart';
 import 'package:kanyoni/features/settings/policies_settings.dart';
 import 'package:kanyoni/features/settings/support_settings.dart';
 import 'package:kanyoni/features/settings/theme_settings.dart';
 import 'package:kanyoni/utils/theme/theme.dart';
+import 'package:on_audio_query_pluse/on_audio_query.dart';
 import 'package:kanyoni/utils/widgets/artwork_backdrop.dart';
 
 class SettingsView extends StatefulWidget {
@@ -91,6 +94,17 @@ class _SettingsViewState extends State<SettingsView> {
                       onTap: () {
                         Get.to(() => const SupportSettingsScreen());
                       },
+                    ),
+                    const SizedBox(height: 12),
+                    _ModernSettingsCard(
+                      icon: Iconsax.document_text,
+                      title: 'Open-source licenses',
+                      subtitle: 'Libraries used by Kanyoni',
+                      isDarkMode: isDarkMode,
+                      onTap: () => showLicensePage(
+                        context: context,
+                        applicationName: 'Kanyoni',
+                      ),
                     ),
                   ],
                 ),

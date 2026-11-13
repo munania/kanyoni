@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -22,6 +23,19 @@ void main() async {
   // Note: Hive (used for the lyrics cache) is intentionally NOT initialised
   // here. It is opened lazily the first time lyrics are needed, so it adds
   // nothing to app start-up. See LyricsStore.
+
+  // Native Android libraries aren't Dart packages, so Flutter's licenses page
+  // doesn't know about them. List them here.
+  LicenseRegistry.addLicense(() async* {
+    yield const LicenseEntryWithLineBreaks(
+      ['jaudiotagger (tag editing)'],
+      'jaudiotagger is licensed under the GNU Lesser General Public License '
+      '(LGPL) version 2.1 or later.\n\n'
+      'Android build used by Kanyoni: https://github.com/Adonai/jaudiotagger-android\n'
+      'Original project: https://www.jthink.net/jaudiotagger/\n'
+      'Full license text: https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html',
+    );
+  });
 
   runApp(const MyApp());
 }
